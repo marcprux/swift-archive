@@ -13,6 +13,8 @@
 /* ============================================================ */
 #if defined(_WIN32) && !defined(__CYGWIN__)
 
+#include <stdint.h>
+
 /* POSIX types not provided by Windows */
 typedef unsigned short uid_t;
 typedef unsigned short gid_t;
