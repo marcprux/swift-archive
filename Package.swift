@@ -2,6 +2,12 @@
 
 import PackageDescription
 
+#if os(macOS) || os(iOS) || os(tvOS) || os(watchOS) || os(visionOS)
+let defaultTraits: Set<String> = ["GzipSupport", "Bzip2Support"]
+#else
+let defaultTraits: Set<String> = []
+#endif
+
 let package = Package(
     name: "Archive",
 	platforms: [.macOS(.v13), .iOS(.v15), .tvOS(.v15), .watchOS(.v10)],
@@ -9,7 +15,10 @@ let package = Package(
         .library(name: "Archive", targets: ["Archive"]),
     ],
     traits: [
-        .default(enabledTraits: ["GzipSupport", "Bzip2Support", /*"XZSupport", "ZstdSupport"*/]),
+        // On macOS, zlib and bzip2 are in the SDK. On Linux, dev packages
+        // (zlib1g-dev, libbz2-dev) must be installed separately, so compression
+        // traits are not enabled by default.
+        .default(enabledTraits: defaultTraits),
         .trait(name: "GzipSupport", description: "Enable gzip compression (zlib)"),
         .trait(name: "Bzip2Support", description: "Enable bzip2 compression"),
         .trait(name: "XZSupport", description: "Enable xz/lzma compression (requires liblzma)"),
