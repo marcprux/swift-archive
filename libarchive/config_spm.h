@@ -92,17 +92,24 @@
 /* ============================================================ */
 #elif defined(__linux__)
 
-/* ACL support via POSIX ACL */
+/* ACL support via POSIX ACL (requires libacl-dev) */
+#if __has_include(<sys/acl.h>)
 #define ARCHIVE_ACL_LIBACL 1
 #define HAVE_ACL_GET_PERM 1
 #define HAVE_SYS_ACL_H 1
+#endif
 
-/* Extended attributes via Linux APIs */
+/* Extended attributes via Linux APIs (sys/xattr.h is in glibc) */
+#if __has_include(<sys/xattr.h>)
 #define ARCHIVE_XATTR_LINUX 1
 #define HAVE_SYS_XATTR_H 1
+#endif
+#if __has_include(<attr/xattr.h>)
 #define HAVE_ATTR_XATTR_H 1
+#endif
 
-/* Crypto via OpenSSL */
+/* Crypto via OpenSSL (requires libssl-dev) */
+#if __has_include(<openssl/evp.h>)
 #define HAVE_LIBCRYPTO 1
 #define HAVE_OPENSSL_EVP_H 1
 #define HAVE_OPENSSL_MD5_H 1
@@ -118,6 +125,7 @@
 #define ARCHIVE_CRYPTO_SHA256_OPENSSL 1
 #define ARCHIVE_CRYPTO_SHA384_OPENSSL 1
 #define ARCHIVE_CRYPTO_SHA512_OPENSSL 1
+#endif
 
 /* Linux-specific features */
 #define HAVE_STRUCT_STAT_ST_MTIM_TV_NSEC 1
