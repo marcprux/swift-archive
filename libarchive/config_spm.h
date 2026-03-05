@@ -9,6 +9,17 @@
 #define __LIBARCHIVE_CONFIG_H_INCLUDED 1
 
 /* ============================================================ */
+/* Windows platform configuration                               */
+/* ============================================================ */
+#if defined(_WIN32) && !defined(__CYGWIN__)
+
+/* POSIX types not provided by Windows */
+typedef unsigned short uid_t;
+typedef unsigned short gid_t;
+
+#endif /* _WIN32 */
+
+/* ============================================================ */
 /* macOS / Apple platform configuration                         */
 /* ============================================================ */
 #if defined(__APPLE__)
