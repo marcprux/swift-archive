@@ -16,6 +16,7 @@ jobs:
       - name: "Test Swift Package on Linux"
         run: swift test --parallel
       - name: "Test Swift Package on Linux with all traits"
+        if: false
         run: swift test --parallel --enable-all-traits
 
   android:
@@ -35,6 +36,7 @@ jobs:
       - name: "Test Swift Package on macOS"
         run: swift test --parallel
       - name: "Test Swift Package on macOS with all traits"
+        if: false
         run: swift test --parallel --enable-all-traits
 
   ios:

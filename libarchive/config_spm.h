@@ -294,3 +294,56 @@
 #define HAVE_SHA256 1
 #define HAVE_SHA384 1
 #define HAVE_SHA512 1
+
+/* ============================================================ */
+/* Android (Bionic libc) overrides                               */
+/* Bionic lacks several POSIX/BSD functions that glibc provides. */
+/* ============================================================ */
+#if defined(__ANDROID__)
+#undef HAVE_CHROOT
+#undef HAVE_FUTIMES
+#undef HAVE_LANGINFO_H
+#undef HAVE_LUTIMES
+#undef HAVE_MKFIFO
+#undef HAVE_MKNOD
+#undef HAVE_NL_LANGINFO
+#undef HAVE_PATHS_H
+#undef HAVE_READDIR_R
+#undef HAVE_READPASSPHRASE
+#undef HAVE_READPASSPHRASE_H
+#undef HAVE_SYS_CDEFS_H
+#undef HAVE_VFORK
+/* Android iconv may not be available */
+#if !__has_include(<iconv.h>)
+#undef HAVE_ICONV
+#undef HAVE_ICONV_H
+#endif
+#endif /* __ANDROID__ */
+
+/* ============================================================ */
+/* Validate compression headers actually exist.                  */
+/* SPM traits are package-level, so defines like HAVE_BZLIB_H    */
+/* may be set even when cross-compiling to platforms that lack    */
+/* the headers. Undef them if the header is not actually present. */
+/* ============================================================ */
+#if defined(HAVE_ZLIB_H) && !__has_include(<zlib.h>)
+#undef HAVE_ZLIB_H
+#undef HAVE_LIBZ
+#endif
+
+#if defined(HAVE_BZLIB_H) && !__has_include(<bzlib.h>)
+#undef HAVE_BZLIB_H
+#undef HAVE_LIBBZ2
+#endif
+
+#if defined(HAVE_LZMA_H) && !__has_include(<lzma.h>)
+#undef HAVE_LZMA_H
+#undef HAVE_LIBLZMA
+#undef HAVE_LZMA_STREAM_ENCODER_MT
+#endif
+
+#if defined(HAVE_ZSTD_H) && !__has_include(<zstd.h>)
+#undef HAVE_ZSTD_H
+#undef HAVE_LIBZSTD
+#undef HAVE_ZSTD_compressStream
+#endif

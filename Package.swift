@@ -2,10 +2,11 @@
 
 import PackageDescription
 
+var defaultTraits: Set<String> = []
+
 #if os(macOS) || os(iOS) || os(tvOS) || os(watchOS) || os(visionOS)
-let defaultTraits: Set<String> = ["GzipSupport", "Bzip2Support"]
-#else
-let defaultTraits: Set<String> = []
+//defaultTraits.insert("GzipSupport")
+//defaultTraits.insert("Bzip2Support")
 #endif
 
 let package = Package(
@@ -31,6 +32,8 @@ let package = Package(
             exclude: [ "test" ],
             publicHeadersPath: ".",
             cSettings: [
+                // Android large-file support header lives in contrib/
+                .headerSearchPath("../contrib/android/include", .when(platforms: [.android])),
                 .define("PLATFORM_CONFIG_H", to: "\"config_spm.h\""),
                 .define("HAVE_ZLIB_H", .when(traits: ["GzipSupport"])),
                 .define("HAVE_LIBZ", .when(traits: ["GzipSupport"])),
@@ -50,7 +53,7 @@ let package = Package(
                 .linkedLibrary("bz2", .when(traits: ["Bzip2Support"])),
                 .linkedLibrary("lzma", .when(traits: ["XZSupport"])),
                 .linkedLibrary("zstd", .when(traits: ["ZstdSupport"])),
-                .linkedLibrary("iconv"),
+				.linkedLibrary("iconv", .when(platforms: [.macOS])),
                 .linkedLibrary("xml2", .when(platforms: [.macOS])),
                 // Homebrew library paths for optional libraries
                 //.unsafeFlags(["-L/opt/homebrew/lib"], .when(platforms: [.macOS])),
