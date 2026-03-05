@@ -17,6 +17,9 @@
 typedef unsigned short uid_t;
 typedef unsigned short gid_t;
 
+#include <BaseTsd.h>
+typedef SSIZE_T ssize_t;
+
 #endif /* _WIN32 */
 
 /* ============================================================ */

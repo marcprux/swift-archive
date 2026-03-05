@@ -27,7 +27,7 @@ jobs:
         uses: skiptools/swift-android-action@v2
         with:
           swift-version: nightly-6.3
-          swift-configuration: release
+          swift-configuration: debug
           free-disk-space: true
 
   macos:
