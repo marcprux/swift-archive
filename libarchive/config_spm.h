@@ -142,6 +142,8 @@ typedef int pid_t;
 /* ============================================================ */
 /* Common POSIX defines (shared across macOS and Linux)         */
 /* ============================================================ */
+#if !defined(_WIN32) || defined(__CYGWIN__)
+
 #define HAVE_CHOWN 1
 #define HAVE_CHROOT 1
 #define HAVE_CTIME_R 1
@@ -285,6 +287,8 @@ typedef int pid_t;
 #define HAVE_SHA256 1
 #define HAVE_SHA384 1
 #define HAVE_SHA512 1
+
+#endif /* !_WIN32 */
 
 /* ============================================================ */
 /* Android (Bionic libc) overrides                               */
