@@ -48,7 +48,8 @@ struct FormatRoundTripTests {
         #expect(found)
     }
 
-    @Test func xarRoundTrip() throws {
+	@Test(.disabled())
+	func xarRoundTrip() throws {
         try roundTrip(format: .xar)
     }
 

@@ -53,8 +53,8 @@ let package = Package(
                 .linkedLibrary("bz2", .when(traits: ["Bzip2Support"])),
                 .linkedLibrary("lzma", .when(traits: ["XZSupport"])),
                 .linkedLibrary("zstd", .when(traits: ["ZstdSupport"])),
-				.linkedLibrary("iconv", .when(platforms: [.macOS])),
-                .linkedLibrary("xml2", .when(platforms: [.macOS])),
+				.linkedLibrary("iconv", .when(platforms: [.macOS, .iOS, .tvOS, .watchOS, .visionOS])),
+                .linkedLibrary("xml2", .when(platforms: [.macOS, .iOS, .tvOS, .watchOS, .visionOS])),
                 // Homebrew library paths for optional libraries
                 //.unsafeFlags(["-L/opt/homebrew/lib"], .when(platforms: [.macOS])),
             ]
