@@ -119,7 +119,7 @@ public struct ArchiveEntry: Sendable {
         #else
         archive_entry_set_perm(entry, mode_t(permissions))
         #endif
-        archive_entry_set_mtime(entry, Int(modificationDate.timeIntervalSince1970), 0)
+        archive_entry_set_mtime(entry, time_t(modificationDate.timeIntervalSince1970), 0)
         archive_entry_set_uid(entry, Int64(uid))
         archive_entry_set_gid(entry, Int64(gid))
         if let target = symlinkTarget {
