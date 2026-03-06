@@ -13,6 +13,14 @@
 /* ============================================================ */
 #if defined(_WIN32) && !defined(__CYGWIN__)
 
+/* Require at least Windows Vista for BCrypt API */
+#ifndef _WIN32_WINNT
+#define _WIN32_WINNT 0x0600
+#endif
+#ifndef NTDDI_VERSION
+#define NTDDI_VERSION 0x06000000
+#endif
+
 #include <stdint.h>
 
 /* POSIX types not provided by Windows */
@@ -378,6 +386,12 @@ typedef unsigned int id_t;
 #define HAVE__GET_TIMEZONE 1
 /* Windows BCrypt API for random number generation */
 #define HAVE_BCRYPT_H 1
+/* Crypto via Windows CNG (BCrypt) */
+#define ARCHIVE_CRYPTO_MD5_WIN 1
+#define ARCHIVE_CRYPTO_SHA1_WIN 1
+#define ARCHIVE_CRYPTO_SHA256_WIN 1
+#define ARCHIVE_CRYPTO_SHA384_WIN 1
+#define ARCHIVE_CRYPTO_SHA512_WIN 1
 #endif /* _WIN32 */
 
 /* ============================================================ */
