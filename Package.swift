@@ -29,11 +29,14 @@ let package = Package(
     targets: [
         .target(
             name: "CArchive",
+            dependencies: [
+                .target(name: "Cliblzma", condition: .when(traits: ["XZSupport"])),
+                .target(name: "Clibzstd", condition: .when(traits: ["ZstdSupport"])),
+            ],
             path: "libarchive",
             exclude: [ "test" ],
             publicHeadersPath: ".",
             cSettings: [
-                // Android large-file support header lives in contrib/
                 .headerSearchPath("../contrib/android/include", .when(platforms: [.android])),
                 .define("PLATFORM_CONFIG_H", to: "\"config_spm.h\""),
                 .define("HAVE_ZLIB_H", .when(traits: ["GzipSupport"])),
@@ -46,8 +49,6 @@ let package = Package(
                 .define("HAVE_ZSTD_H", .when(traits: ["ZstdSupport"])),
                 .define("HAVE_LIBZSTD", .when(traits: ["ZstdSupport"])),
                 .define("HAVE_ZSTD_compressStream", .when(traits: ["ZstdSupport"])),
-                // Homebrew header paths for optional libraries
-                //.unsafeFlags(["-I/opt/homebrew/include"], .when(platforms: [.macOS])),
             ],
             linkerSettings: [
                 .linkedLibrary("z", .when(traits: ["GzipSupport"])),
@@ -57,8 +58,6 @@ let package = Package(
                 .linkedLibrary("iconv", .when(platforms: darwinPlatforms)),
                 .linkedLibrary("xml2", .when(platforms: darwinPlatforms)),
                 .linkedLibrary("crypto", .when(platforms: [.linux])),
-                // Homebrew library paths for optional libraries
-                //.unsafeFlags(["-L/opt/homebrew/lib"], .when(platforms: [.macOS])),
             ]
         ),
 		.systemLibrary(
@@ -66,16 +65,22 @@ let package = Package(
 			path: "contrib/Swift/Sources/Cliblzma",
 			pkgConfig: "liblzma",
 			providers: [
+				.brew(["xz"]),
+				.apt(["liblzma-dev"])
+			]
+		),
+		.systemLibrary(
+			name: "Clibzstd",
+			path: "contrib/Swift/Sources/Clibzstd",
+			pkgConfig: "libzstd",
+			providers: [
 				.brew(["zstd"]),
-				.apt(["zlib1g-dev"])
+				.apt(["libzstd-dev"])
 			]
 		),
         .target(
             name: "Archive",
-            dependencies: [
-				"CArchive",
-				.target(name: "Cliblzma", condition: .when(traits: ["XZSupport"]))
-			],
+            dependencies: ["CArchive"],
 			path: "contrib/Swift/Sources/Archive",
             swiftSettings: [
                 .define("GZIP_SUPPORT", .when(traits: ["GzipSupport"])),
