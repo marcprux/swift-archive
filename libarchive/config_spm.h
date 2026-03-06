@@ -23,6 +23,7 @@ typedef unsigned short gid_t;
 typedef SSIZE_T ssize_t;
 
 typedef int pid_t;
+typedef unsigned short mode_t;
 
 #endif /* _WIN32 */
 
