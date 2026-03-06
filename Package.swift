@@ -61,9 +61,22 @@ let package = Package(
                 //.unsafeFlags(["-L/opt/homebrew/lib"], .when(platforms: [.macOS])),
             ]
         ),
+		.systemLibrary(
+			name: "Cliblzma",
+			path: "contrib/Swift/Sources/Cliblzma",
+			pkgConfig: "liblzma",
+			providers: [
+				.brew(["zstd"]),
+				.apt(["zlib1g-dev"])
+			]
+		),
         .target(
             name: "Archive",
-            dependencies: ["CArchive"],
+            dependencies: [
+				"CArchive",
+				.target(name: "Cliblzma", condition: .when(traits: ["XZSupport"]))
+			],
+			path: "contrib/Swift/Sources/Archive",
             swiftSettings: [
                 .define("GZIP_SUPPORT", .when(traits: ["GzipSupport"])),
                 .define("BZIP2_SUPPORT", .when(traits: ["Bzip2Support"])),
@@ -74,6 +87,7 @@ let package = Package(
         .testTarget(
             name: "ArchiveTests",
             dependencies: ["Archive"],
+			path: "contrib/Swift/Tests/ArchiveTests",
             swiftSettings: [
                 .define("GZIP_SUPPORT", .when(traits: ["GzipSupport"])),
                 .define("BZIP2_SUPPORT", .when(traits: ["Bzip2Support"])),

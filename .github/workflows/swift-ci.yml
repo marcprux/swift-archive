@@ -15,8 +15,9 @@ jobs:
       - uses: actions/checkout@v6
       - name: "Test Swift Package on Linux"
         run: swift test -c release --parallel
+      - name: "Install dependencies for additional traits"
+        run: sudo apt install -y zlib1g-dev libbz2-dev
       - name: "Test Swift Package on Linux with all traits"
-        if: false
         run: swift test -c release --parallel --enable-all-traits
 
   android:
@@ -37,7 +38,6 @@ jobs:
       - name: "Test Swift Package on macOS"
         run: swift test -c release --parallel
       - name: "Test Swift Package on macOS with all traits"
-        if: false
         run: swift test -c release --parallel --enable-all-traits
 
   ios:

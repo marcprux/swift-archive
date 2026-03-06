@@ -1,0 +1,5 @@
+module Cliblzma [system] {
+    link "zstd"
+    export *
+}
+
