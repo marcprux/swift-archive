@@ -291,6 +291,91 @@ typedef unsigned short mode_t;
 #define HAVE_SHA512 1
 
 /* ============================================================ */
+/* Windows (MSVC / clang-cl) overrides                           */
+/* Windows lacks most POSIX headers and functions; undef them.   */
+/* ============================================================ */
+#if defined(_WIN32) && !defined(__CYGWIN__)
+#undef HAVE_CHOWN
+#undef HAVE_CHROOT
+#undef HAVE_CTIME_R
+#undef HAVE_DECL_SSIZE_MAX
+#undef HAVE_DECL_STRERROR_R
+#undef HAVE_DIRENT_H
+#undef HAVE_DLFCN_H
+#undef HAVE_FCHDIR
+#undef HAVE_FCHMOD
+#undef HAVE_FCHOWN
+#undef HAVE_FCNTL
+#undef HAVE_FDOPENDIR
+#undef HAVE_FNMATCH
+#undef HAVE_FNMATCH_H
+#undef HAVE_FORK
+#undef HAVE_FSEEKO
+#undef HAVE_FSTATAT
+#undef HAVE_FSTATVFS
+#undef HAVE_FTRUNCATE
+#undef HAVE_FUTIMES
+#undef HAVE_GETEUID
+#undef HAVE_GETGRGID_R
+#undef HAVE_GETGRNAM_R
+#undef HAVE_GETLINE
+#undef HAVE_GETPWNAM_R
+#undef HAVE_GETPWUID_R
+#undef HAVE_GMTIME_R
+#undef HAVE_GRP_H
+#undef HAVE_LANGINFO_H
+#undef HAVE_LCHOWN
+#undef HAVE_LINK
+#undef HAVE_LINKAT
+#undef HAVE_LOCALTIME_R
+#undef HAVE_LSTAT
+#undef HAVE_LUTIMES
+#undef HAVE_MKFIFO
+#undef HAVE_MKNOD
+#undef HAVE_MKSTEMP
+#undef HAVE_NL_LANGINFO
+#undef HAVE_OPENAT
+#undef HAVE_PATHS_H
+#undef HAVE_PIPE
+#undef HAVE_POLL
+#undef HAVE_POLL_H
+#undef HAVE_POSIX_SPAWNP
+#undef HAVE_PTHREAD_H
+#undef HAVE_PWD_H
+#undef HAVE_READDIR_R
+#undef HAVE_READLINK
+#undef HAVE_READLINKAT
+#undef HAVE_REGEX_H
+#undef HAVE_SIGACTION
+#undef HAVE_SPAWN_H
+#undef HAVE_STATVFS
+#undef HAVE_STRERROR_R
+#undef HAVE_STRINGS_H
+#undef HAVE_STRUCT_STAT_ST_BLKSIZE
+#undef HAVE_STRUCT_TM_TM_GMTOFF
+#undef HAVE_SYMLINK
+#undef HAVE_SYS_CDEFS_H
+#undef HAVE_SYS_IOCTL_H
+#undef HAVE_SYS_PARAM_H
+#undef HAVE_SYS_POLL_H
+#undef HAVE_SYS_SELECT_H
+#undef HAVE_SYS_STATVFS_H
+#undef HAVE_SYS_TIME_H
+#undef HAVE_SYS_UTSNAME_H
+#undef HAVE_SYS_WAIT_H
+#undef HAVE_TIMEGM
+#undef HAVE_UNISTD_H
+#undef HAVE_UNLINKAT
+#undef HAVE_UNSETENV
+#undef HAVE_UTIMES
+#undef HAVE_UTIME_H
+#undef HAVE_VFORK
+#undef HAVE_ICONV
+#undef HAVE_ICONV_H
+#undef ICONV_CONST
+#endif /* _WIN32 */
+
+/* ============================================================ */
 /* Android (Bionic libc) overrides                               */
 /* Bionic lacks several POSIX/BSD functions that glibc provides. */
 /* ============================================================ */
