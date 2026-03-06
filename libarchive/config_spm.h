@@ -376,6 +376,8 @@ typedef unsigned int id_t;
 #undef ICONV_CONST
 /* Windows UCRT provides _get_timezone() instead of the POSIX timezone global */
 #define HAVE__GET_TIMEZONE 1
+/* Windows BCrypt API for random number generation */
+#define HAVE_BCRYPT_H 1
 #endif /* _WIN32 */
 
 /* ============================================================ */
