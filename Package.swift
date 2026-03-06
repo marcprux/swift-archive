@@ -22,8 +22,8 @@ let package = Package(
         .target(
             name: "CArchive",
             dependencies: [
-                .target(name: "Cliblzma", condition: .when(traits: ["LZMASupport"])),
-                .target(name: "Clibzstd", condition: .when(traits: ["ZstdSupport"])),
+                .target(name: "Cliblzma", condition: .when(platforms: [.macOS, .linux, .android], traits: ["LZMASupport"])),
+                .target(name: "Clibzstd", condition: .when(platforms: [.macOS, .linux, .android], traits: ["ZstdSupport"])),
             ],
             path: "libarchive",
             exclude: [ "test" ],
@@ -45,8 +45,8 @@ let package = Package(
             linkerSettings: [
                 .linkedLibrary("z", .when(traits: ["GzipSupport"])),
                 .linkedLibrary("bz2", .when(traits: ["Bzip2Support"])),
-                .linkedLibrary("lzma", .when(traits: ["LZMASupport"])),
-                .linkedLibrary("zstd", .when(traits: ["ZstdSupport"])),
+                .linkedLibrary("lzma", .when(platforms: [.macOS, .linux, .android], traits: ["LZMASupport"])),
+                .linkedLibrary("zstd", .when(platforms: [.macOS, .linux, .android], traits: ["ZstdSupport"])),
                 .linkedLibrary("iconv", .when(platforms: [.macOS, .iOS, .tvOS, .watchOS, .visionOS])),
                 .linkedLibrary("crypto", .when(platforms: [.linux])),
             ]
