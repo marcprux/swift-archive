@@ -22,7 +22,7 @@ extension Data {
     }
 
     /// Creates an archive from this data with the given filename.
-    public func compress(as filename: String, format: ArchiveFormat = .tar, filters: [ArchiveFilter] = [.gzip]) throws -> Data {
+    public func compress(as filename: String, format: ArchiveFormat, filters: [ArchiveFilter] = []) throws -> Data {
         let writer = try ArchiveWriter(format: format, filters: filters)
         let entry = ArchiveEntry(pathname: filename, size: Int64(self.count))
         try writer.writeEntry(entry, data: self)

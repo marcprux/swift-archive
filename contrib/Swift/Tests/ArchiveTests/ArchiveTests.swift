@@ -2,6 +2,51 @@ import Testing
 import Foundation
 @testable import Archive
 
+/// When the `GzipSupport` trait is enabled we will run the `.gzip` tests
+let gzipSupport: ArchiveFilter? = {
+    #if GzipSupport
+    .gzip
+    #else
+    nil
+    #endif
+}()
+
+/// When the `Bzip2Support` trait is enabled we will run the `.bzip2` tests
+let bzip2Support: ArchiveFilter? = {
+    #if Bzip2Support
+    .bzip2
+    #else
+    nil
+    #endif
+}()
+
+/// When the `LZMASupport` trait is enabled we will run the `.xz` tests
+let xzSupport: ArchiveFilter? = {
+    #if LZMASupport
+    .xz
+    #else
+    nil
+    #endif
+}()
+
+/// When the `LZMASupport` trait is enabled we will run the `.xz` tests
+let lzmaSupport: ArchiveFilter? = {
+    #if LZMASupport
+    .lzma
+    #else
+    nil
+    #endif
+}()
+
+/// When the `ZstdSupport` trait is enabled we will run the `.zstd` tests
+let zstdSupport: ArchiveFilter? = {
+    #if ZstdSupport
+    .zstd
+    #else
+    nil
+    #endif
+}()
+
 // MARK: - Version Tests
 
 @Test func versionInfo() {
@@ -48,8 +93,8 @@ struct FormatRoundTripTests {
         #expect(found)
     }
 
-	@Test(.disabled())
-	func xarRoundTrip() throws {
+    @Test(.disabled(if: true))
+    func xarRoundTrip() throws {
         try roundTrip(format: .xar)
     }
 
@@ -83,61 +128,37 @@ struct FormatRoundTripTests {
 
 // MARK: - Filter Round-Trip Tests
 
-#if GZIP_SUPPORT
-let gzipSupport = true
-#else
-let gzipSupport = false
-#endif
-
-#if BZIP2_SUPPORT
-let bzip2Support = true
-#else
-let bzip2Support = false
-#endif
-
-#if XZ_SUPPORT
-let xzSupport = true
-#else
-let xzSupport = false
-#endif
-
-#if ZSTD_SUPPORT
-let zstdSupport = true
-#else
-let zstdSupport = false
-#endif
-
 @Suite("Filter Round-Trips")
 struct FilterRoundTripTests {
 
-	@Test
-	func compressFilter() throws {
-		try filterRoundTrip(filter: .compress)
-	}
-
-	@Test(.disabled(if: !gzipSupport))
-	func gzipFilter() throws {
-        try filterRoundTrip(filter: .gzip)
+    @Test
+    func compressFilter() throws {
+        try filterRoundTrip(filter: .compress)
     }
 
-	@Test(.disabled(if: !bzip2Support))
+    @Test(.disabled(if: gzipSupport == nil))
+    func gzipFilter() throws {
+        try filterRoundTrip(filter: gzipSupport!)
+    }
+
+    @Test(.disabled(if: bzip2Support == nil))
     func bzip2Filter() throws {
-        try filterRoundTrip(filter: .bzip2)
+        try filterRoundTrip(filter: bzip2Support!)
     }
 
-	@Test(.disabled(if: !xzSupport))
+    @Test(.disabled(if: xzSupport == nil))
     func xzFilter() throws {
-        try filterRoundTrip(filter: .xz)
+        try filterRoundTrip(filter: xzSupport!)
     }
 
-	@Test(.disabled(if: !xzSupport))
+    @Test(.disabled(if: lzmaSupport == nil))
     func lzmaFilter() throws {
-        try filterRoundTrip(filter: .lzma)
+        try filterRoundTrip(filter: lzmaSupport!)
     }
 
-	@Test(.disabled(if: !zstdSupport))
+    @Test(.disabled(if: zstdSupport == nil))
     func zstdFilter() throws {
-        try filterRoundTrip(filter: .zstd)
+        try filterRoundTrip(filter: zstdSupport!)
     }
 
     private func filterRoundTrip(filter: ArchiveFilter) throws {
@@ -166,24 +187,24 @@ struct FilterRoundTripTests {
 @Suite("Filter Composition")
 struct FilterCompositionTests {
 
-	@Test(.disabled(if: !gzipSupport))
+    @Test(.disabled(if: gzipSupport == nil))
     func tarGzip() throws {
-        try compositionRoundTrip(filters: [.gzip])
+        try compositionRoundTrip(filters: [gzipSupport!])
     }
 
-	@Test(.disabled(if: !bzip2Support))
-	func tarBzip2() throws {
-        try compositionRoundTrip(filters: [.bzip2])
+    @Test(.disabled(if: bzip2Support == nil))
+    func tarBzip2() throws {
+        try compositionRoundTrip(filters: [bzip2Support!])
     }
 
-	@Test(.disabled(if: !xzSupport))
-	func tarXz() throws {
-        try compositionRoundTrip(filters: [.xz])
+    @Test(.disabled(if: xzSupport == nil))
+    func tarXz() throws {
+        try compositionRoundTrip(filters: [xzSupport!])
     }
 
-	@Test(.disabled(if: !zstdSupport))
-	func tarZstd() throws {
-        try compositionRoundTrip(filters: [.zstd])
+    @Test(.disabled(if: zstdSupport == nil))
+    func tarZstd() throws {
+        try compositionRoundTrip(filters: [zstdSupport!])
     }
 
     private func compositionRoundTrip(filters: [ArchiveFilter]) throws {
@@ -366,40 +387,40 @@ struct ExtractTests {
 @Suite("Data Extensions")
 struct DataExtensionTests {
 
-	@Test(.disabled(if: !gzipSupport))
-	func compressDecompressGzip() throws {
+    @Test(.disabled(if: gzipSupport == nil))
+    func compressDecompressGzip() throws {
         let original = Data("Hello, gzip compression round-trip!".utf8)
-        let compressed = try original.compress(as: "test.txt", format: .tar, filters: [.gzip])
+        let compressed = try original.compress(as: "test.txt", format: .tar, filters: [gzipSupport!])
         #expect(!compressed.isEmpty)
 
         let decompressed = try compressed.decompressArchive()
         #expect(decompressed["test.txt"] == original)
     }
 
-	@Test(.disabled(if: !bzip2Support))
-	func compressDecompressBzip2() throws {
+    @Test(.disabled(if: bzip2Support == nil))
+    func compressDecompressBzip2() throws {
         let original = Data("Hello, bzip2 compression round-trip!".utf8)
-        let compressed = try original.compress(as: "test.txt", format: .tar, filters: [.bzip2])
+        let compressed = try original.compress(as: "test.txt", format: .tar, filters: [bzip2Support!])
         #expect(!compressed.isEmpty)
 
         let decompressed = try compressed.decompressArchive()
         #expect(decompressed["test.txt"] == original)
     }
 
-	@Test(.disabled(if: !xzSupport))
-	func compressDecompressXz() throws {
+    @Test(.disabled(if: xzSupport == nil))
+    func compressDecompressXz() throws {
         let original = Data("Hello, xz compression round-trip!".utf8)
-        let compressed = try original.compress(as: "test.txt", format: .tar, filters: [.xz])
+        let compressed = try original.compress(as: "test.txt", format: .tar, filters: [xzSupport!])
         #expect(!compressed.isEmpty)
 
         let decompressed = try compressed.decompressArchive()
         #expect(decompressed["test.txt"] == original)
     }
 
-	@Test(.disabled(if: !zstdSupport))
-	func compressDecompressZstd() throws {
+    @Test(.disabled(if: zstdSupport == nil))
+    func compressDecompressZstd() throws {
         let original = Data("Hello, zstd compression round-trip!".utf8)
-        let compressed = try original.compress(as: "test.txt", format: .tar, filters: [.zstd])
+        let compressed = try original.compress(as: "test.txt", format: .tar, filters: [zstdSupport!])
         #expect(!compressed.isEmpty)
 
         let decompressed = try compressed.decompressArchive()
@@ -476,13 +497,13 @@ struct ConcurrencyTests {
 @Suite("File-Based Writing")
 struct FileBasedWriterTests {
 
-	@Test(.disabled(if: !gzipSupport))
-	func writeToFileAndReadBackGzip() throws {
+    @Test(.disabled(if: gzipSupport == nil))
+    func writeToFileAndReadBackGzip() throws {
         let tmpPath = NSTemporaryDirectory() + "archive_test_\(ProcessInfo.processInfo.globallyUniqueString).tar.gz"
         defer { try? FileManager.default.removeItem(atPath: tmpPath) }
 
         let fileData = Data("file-based gzip writing test".utf8)
-        let writer = try ArchiveWriter(path: tmpPath, format: .tar, filters: [.gzip])
+        let writer = try ArchiveWriter(path: tmpPath, format: .tar, filters: [gzipSupport!])
         try writer.writeEntry(
             ArchiveEntry(pathname: "file.txt", size: Int64(fileData.count)),
             data: fileData
@@ -497,13 +518,13 @@ struct FileBasedWriterTests {
         }
     }
 
-	@Test(.disabled(if: !xzSupport))
-	func writeToFileAndReadBackXz() throws {
+    @Test(.disabled(if: xzSupport == nil))
+    func writeToFileAndReadBackXz() throws {
         let tmpPath = NSTemporaryDirectory() + "archive_test_\(ProcessInfo.processInfo.globallyUniqueString).tar.xz"
         defer { try? FileManager.default.removeItem(atPath: tmpPath) }
 
         let fileData = Data("file-based xz writing test".utf8)
-        let writer = try ArchiveWriter(path: tmpPath, format: .tar, filters: [.xz])
+        let writer = try ArchiveWriter(path: tmpPath, format: .tar, filters: [xzSupport!])
         try writer.writeEntry(
             ArchiveEntry(pathname: "file.txt", size: Int64(fileData.count)),
             data: fileData
@@ -518,13 +539,13 @@ struct FileBasedWriterTests {
         }
     }
 
-	@Test(.disabled(if: !zstdSupport))
-	func writeToFileAndReadBackZstd() throws {
+    @Test(.disabled(if: zstdSupport == nil))
+        func writeToFileAndReadBackZstd() throws {
         let tmpPath = NSTemporaryDirectory() + "archive_test_\(ProcessInfo.processInfo.globallyUniqueString).tar.zst"
         defer { try? FileManager.default.removeItem(atPath: tmpPath) }
 
         let fileData = Data("file-based zstd writing test".utf8)
-        let writer = try ArchiveWriter(path: tmpPath, format: .tar, filters: [.zstd])
+        let writer = try ArchiveWriter(path: tmpPath, format: .tar, filters: [zstdSupport!])
         try writer.writeEntry(
             ArchiveEntry(pathname: "file.txt", size: Int64(fileData.count)),
             data: fileData

@@ -99,7 +99,7 @@ let entries = try archiveData.archiveEntries()
 | gzip | Yes | Yes | `GzipSupport` (default) |
 | bzip2 | Yes | Yes | `Bzip2Support` (default) |
 | compress | Yes | Yes | Always available |
-| xz/lzma | Yes | Yes | `XZSupport` (requires liblzma) |
+| xz/lzma | Yes | Yes | `LZMASupport` (requires liblzma) |
 | zstd | Yes | Yes | `ZstdSupport` (requires libzstd) |
 | lz4 | Yes | Yes | Always available |
 
@@ -114,7 +114,7 @@ try ArchiveWriter(format: .tar, filters: [.gzip])
 // .tar.bz2
 try ArchiveWriter(format: .tar, filters: [.bzip2])
 
-// .tar.xz (requires XZSupport trait)
+// .tar.xz (requires LZMASupport trait)
 try ArchiveWriter(format: .tar, filters: [.xz])
 ```
 
@@ -126,13 +126,13 @@ The package uses Swift Package Manager traits to control optional compression li
 |-------|---------|-------------|
 | `GzipSupport` | Enabled | zlib (available in macOS SDK) |
 | `Bzip2Support` | Enabled | bzip2 (available in macOS SDK) |
-| `XZSupport` | Disabled | Requires liblzma (e.g., `brew install xz`) |
+| `LZMASupport` | Disabled | Requires liblzma (e.g., `brew install xz`) |
 | `ZstdSupport` | Disabled | Requires libzstd (e.g., `brew install zstd`) |
 
 Enable additional traits:
 
 ```bash
-swift build --traits XZSupport,ZstdSupport
+swift build --traits LZMASupport,ZstdSupport
 ```
 
 ## Error Handling

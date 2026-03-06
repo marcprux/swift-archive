@@ -14,15 +14,15 @@ let package = Package(
         // traits are not enabled by default.
         .trait(name: "GzipSupport", description: "Enable gzip compression (zlib)"),
         .trait(name: "Bzip2Support", description: "Enable bzip2 compression"),
-        .trait(name: "XZSupport", description: "Enable xz/lzma compression (requires liblzma)"),
+        .trait(name: "LZMASupport", description: "Enable lzma compression (requires liblzma)"),
         .trait(name: "ZstdSupport", description: "Enable Zstandard compression (requires libzstd)"),
-        .default(enabledTraits: ["GzipSupport"]),
+        .default(enabledTraits: [/*"GzipSupport"*/]),
     ],
     targets: [
         .target(
             name: "CArchive",
             dependencies: [
-                .target(name: "Cliblzma", condition: .when(traits: ["XZSupport"])),
+                .target(name: "Cliblzma", condition: .when(traits: ["LZMASupport"])),
                 .target(name: "Clibzstd", condition: .when(traits: ["ZstdSupport"])),
             ],
             path: "libarchive",
@@ -35,9 +35,9 @@ let package = Package(
                 .define("HAVE_LIBZ", .when(traits: ["GzipSupport"])),
                 .define("HAVE_BZLIB_H", .when(traits: ["Bzip2Support"])),
                 .define("HAVE_LIBBZ2", .when(traits: ["Bzip2Support"])),
-                .define("HAVE_LZMA_H", .when(traits: ["XZSupport"])),
-                .define("HAVE_LIBLZMA", .when(traits: ["XZSupport"])),
-                .define("HAVE_LZMA_STREAM_ENCODER_MT", .when(traits: ["XZSupport"])),
+                .define("HAVE_LZMA_H", .when(traits: ["LZMASupport"])),
+                .define("HAVE_LIBLZMA", .when(traits: ["LZMASupport"])),
+                .define("HAVE_LZMA_STREAM_ENCODER_MT", .when(traits: ["LZMASupport"])),
                 .define("HAVE_ZSTD_H", .when(traits: ["ZstdSupport"])),
                 .define("HAVE_LIBZSTD", .when(traits: ["ZstdSupport"])),
                 .define("HAVE_ZSTD_compressStream", .when(traits: ["ZstdSupport"])),
@@ -45,7 +45,7 @@ let package = Package(
             linkerSettings: [
                 .linkedLibrary("z", .when(traits: ["GzipSupport"])),
                 .linkedLibrary("bz2", .when(traits: ["Bzip2Support"])),
-                .linkedLibrary("lzma", .when(traits: ["XZSupport"])),
+                .linkedLibrary("lzma", .when(traits: ["LZMASupport"])),
                 .linkedLibrary("zstd", .when(traits: ["ZstdSupport"])),
                 .linkedLibrary("iconv", .when(platforms: [.macOS, .iOS, .tvOS, .watchOS, .visionOS])),
                 .linkedLibrary("crypto", .when(platforms: [.linux])),
@@ -72,24 +72,12 @@ let package = Package(
         .target(
             name: "Archive",
             dependencies: ["CArchive"],
-            path: "contrib/Swift/Sources/Archive",
-            swiftSettings: [
-                .define("GZIP_SUPPORT", .when(traits: ["GzipSupport"])),
-                .define("BZIP2_SUPPORT", .when(traits: ["Bzip2Support"])),
-                .define("XZ_SUPPORT", .when(traits: ["XZSupport"])),
-                .define("ZSTD_SUPPORT", .when(traits: ["ZstdSupport"])),
-            ]
+            path: "contrib/Swift/Sources/Archive"
         ),
         .testTarget(
             name: "ArchiveTests",
             dependencies: ["Archive"],
-            path: "contrib/Swift/Tests/ArchiveTests",
-            swiftSettings: [
-                .define("GZIP_SUPPORT", .when(traits: ["GzipSupport"])),
-                .define("BZIP2_SUPPORT", .when(traits: ["Bzip2Support"])),
-                .define("XZ_SUPPORT", .when(traits: ["XZSupport"])),
-                .define("ZSTD_SUPPORT", .when(traits: ["ZstdSupport"])),
-            ]
+            path: "contrib/Swift/Tests/ArchiveTests"
         ),
     ]
 )
