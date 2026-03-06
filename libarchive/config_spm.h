@@ -13,12 +13,12 @@
 /* ============================================================ */
 #if defined(_WIN32) && !defined(__CYGWIN__)
 
-/* Require at least Windows Vista for BCrypt API */
+/* Require at least Windows 7 for BCryptDeriveKeyPBKDF2 */
 #ifndef _WIN32_WINNT
-#define _WIN32_WINNT 0x0600
+#define _WIN32_WINNT 0x0601
 #endif
 #ifndef NTDDI_VERSION
-#define NTDDI_VERSION 0x06000000
+#define NTDDI_VERSION 0x06010000
 #endif
 
 #include <stdint.h>
