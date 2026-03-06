@@ -8,7 +8,7 @@ Add to your `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/marcprux/swift-archive.git", branch: "master")
+    .package(url: "https://github.com/libarchive/libarchive", from: "3.8.5")
 ]
 ```
 
