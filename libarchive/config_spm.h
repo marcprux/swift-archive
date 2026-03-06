@@ -373,6 +373,8 @@ typedef unsigned short mode_t;
 #undef HAVE_ICONV
 #undef HAVE_ICONV_H
 #undef ICONV_CONST
+/* Windows UCRT provides _get_timezone() instead of the POSIX timezone global */
+#define HAVE__GET_TIMEZONE 1
 #endif /* _WIN32 */
 
 /* ============================================================ */
