@@ -16,7 +16,7 @@ jobs:
       - name: "Test Swift Package on Linux"
         run: swift test -c release --parallel
       - name: "Install dependencies for additional traits"
-        run: sudo apt install -y zlib1g-dev libbz2-dev
+        run: sudo apt install -y liblzma-dev libbz2-dev
       - name: "Test Swift Package on Linux with all traits"
         run: swift test -c release --parallel --enable-all-traits
 
@@ -44,8 +44,13 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v6
+      - name: "List available simulators"
+        run: |
+          echo "::group::Available simulators"
+          xcrun simctl list devices available
+          echo "::endgroup::"
       - name: "Test Swift Package on iOS"
-        run: xcodebuild test -sdk "iphonesimulator" -destination "platform=iOS Simulator,name=iPhone 17" -scheme "Archive"
+        run: xcodebuild test -sdk "iphonesimulator" -destination "platform=iOS Simulator,name=iPhone 17,OS=latest" -scheme "Archive"
 
   windows:
     runs-on: windows-latest
