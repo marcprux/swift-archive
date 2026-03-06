@@ -2,17 +2,9 @@
 
 import PackageDescription
 
-let darwinPlatforms: [Platform] = [.macOS, .iOS, .tvOS, .watchOS, .visionOS]
-var defaultTraits: Set<String> = []
-
-#if os(macOS) || os(iOS) || os(tvOS) || os(watchOS) || os(visionOS)
-//defaultTraits.insert("GzipSupport")
-//defaultTraits.insert("Bzip2Support")
-#endif
-
 let package = Package(
     name: "Archive",
-	platforms: [.macOS(.v13), .iOS(.v15), .tvOS(.v15), .watchOS(.v10)],
+    platforms: [.macOS(.v13), .iOS(.v15), .tvOS(.v15), .watchOS(.v10)],
     products: [
         .library(name: "Archive", targets: ["Archive"]),
     ],
@@ -24,7 +16,7 @@ let package = Package(
         .trait(name: "Bzip2Support", description: "Enable bzip2 compression"),
         .trait(name: "XZSupport", description: "Enable xz/lzma compression (requires liblzma)"),
         .trait(name: "ZstdSupport", description: "Enable Zstandard compression (requires libzstd)"),
-		.default(enabledTraits: ["GzipSupport"]),
+        .default(enabledTraits: ["GzipSupport"]),
     ],
     targets: [
         .target(
@@ -55,33 +47,32 @@ let package = Package(
                 .linkedLibrary("bz2", .when(traits: ["Bzip2Support"])),
                 .linkedLibrary("lzma", .when(traits: ["XZSupport"])),
                 .linkedLibrary("zstd", .when(traits: ["ZstdSupport"])),
-                .linkedLibrary("iconv", .when(platforms: darwinPlatforms)),
-                .linkedLibrary("xml2", .when(platforms: darwinPlatforms)),
+                .linkedLibrary("iconv", .when(platforms: [.macOS, .iOS, .tvOS, .watchOS, .visionOS])),
                 .linkedLibrary("crypto", .when(platforms: [.linux])),
             ]
         ),
-		.systemLibrary(
-			name: "Cliblzma",
-			path: "contrib/Swift/Sources/Cliblzma",
-			pkgConfig: "liblzma",
-			providers: [
-				.brew(["xz"]),
-				.apt(["liblzma-dev"])
-			]
-		),
-		.systemLibrary(
-			name: "Clibzstd",
-			path: "contrib/Swift/Sources/Clibzstd",
-			pkgConfig: "libzstd",
-			providers: [
-				.brew(["zstd"]),
-				.apt(["libzstd-dev"])
-			]
-		),
+        .systemLibrary(
+            name: "Cliblzma",
+            path: "contrib/Swift/Sources/Cliblzma",
+            pkgConfig: "liblzma",
+            providers: [
+                .brew(["xz"]),
+                .apt(["liblzma-dev"])
+            ]
+        ),
+        .systemLibrary(
+            name: "Clibzstd",
+            path: "contrib/Swift/Sources/Clibzstd",
+            pkgConfig: "libzstd",
+            providers: [
+                .brew(["zstd"]),
+                .apt(["libzstd-dev"])
+            ]
+        ),
         .target(
             name: "Archive",
             dependencies: ["CArchive"],
-			path: "contrib/Swift/Sources/Archive",
+            path: "contrib/Swift/Sources/Archive",
             swiftSettings: [
                 .define("GZIP_SUPPORT", .when(traits: ["GzipSupport"])),
                 .define("BZIP2_SUPPORT", .when(traits: ["Bzip2Support"])),
@@ -92,7 +83,7 @@ let package = Package(
         .testTarget(
             name: "ArchiveTests",
             dependencies: ["Archive"],
-			path: "contrib/Swift/Tests/ArchiveTests",
+            path: "contrib/Swift/Tests/ArchiveTests",
             swiftSettings: [
                 .define("GZIP_SUPPORT", .when(traits: ["GzipSupport"])),
                 .define("BZIP2_SUPPORT", .when(traits: ["Bzip2Support"])),
