@@ -1365,7 +1365,7 @@ cab_read_ahead_cfdata(struct archive_read *a, ssize_t *avail)
 		return (cab_read_ahead_cfdata_lzx(a, avail));
 	default: /* Unsupported compression. */
 		archive_set_error(&a->archive, ARCHIVE_ERRNO_FILE_FORMAT,
-		    "Unsupported CAB compression : %s",
+		    "Unsupported CAB compression: %s",
 		    cab->entry_cffolder->compname);
 		*avail = ARCHIVE_FAILED;
 		return (NULL);
@@ -1452,7 +1452,7 @@ cab_read_ahead_cfdata_deflate(struct archive_read *a, ssize_t *avail)
 			    -15 /* Don't check for zlib header */);
 		if (r != Z_OK) {
 			archive_set_error(&a->archive, ARCHIVE_ERRNO_MISC,
-			    "Can't initialize deflate decompression.");
+			    "Can't initialize deflate decompression");
 			*avail = ARCHIVE_FATAL;
 			return (NULL);
 		}
@@ -3211,6 +3211,10 @@ lzx_make_huffman_table(struct huffman *hf)
 	bitlen = hf->bitlen;
 	len_avail = hf->len_size;
 	hf->tree_used = 0;
+	/* Initialize table to invalid values */
+	for (i = 0; i < tbl_size; i++) {
+		tbl[i] = (uint16_t)hf->len_size;
+	}
 	for (i = 0; i < len_avail; i++) {
 		uint16_t *p;
 		int len, cnt;

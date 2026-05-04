@@ -1663,7 +1663,7 @@ zisofs_read_data(struct archive_read *a,
 			r = inflateInit(&zisofs->stream);
 		if (r != Z_OK) {
 			archive_set_error(&a->archive, ARCHIVE_ERRNO_MISC,
-			    "Can't initialize zisofs decompression.");
+			    "Can't initialize zisofs decompression");
 			return (ARCHIVE_FATAL);
 		}
 		zisofs->stream_valid = 1;
@@ -2756,11 +2756,19 @@ parse_rockridge_ZF1(struct file_info *file, const unsigned char *data,
 {
 
 	if (data[0] == 0x70 && data[1] == 0x7a && data_length == 12) {
-		/* paged zlib */
-		file->pz = 1;
-		file->pz_log2_bs = data[3];
-		file->pz_uncompressed_size = archive_le32dec(&data[4]);
-	}
+        /* paged zlib */
+        file->pz = 1;
+        file->pz_log2_bs = data[3];
+        if (file->pz_log2_bs < 15 || file->pz_log2_bs > 17) {
+            /* TODO: Return an error here instead of silently
+             * disabling zisofs. That requires propagating an
+             * error return through parse_rockridge() and its
+             * callers. */
+            file->pz = 0;
+            return;
+        }
+        file->pz_uncompressed_size = archive_le32dec(&data[4]);
+    }
 }
 
 static void
@@ -3485,6 +3493,8 @@ build_pathname_utf16be(unsigned char *p, size_t max, size_t *len,
 	if (file->parent != NULL && file->parent->utf16be_bytes > 0) {
 		if (build_pathname_utf16be(p, max, len, file->parent) != 0)
 			return (-1);
+		if (*len + 2 > max)
+			return (-1);/* Path is too long! */
 		p[*len] = 0;
 		p[*len + 1] = '/';
 		*len += 2;

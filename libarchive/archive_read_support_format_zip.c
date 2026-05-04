@@ -1726,7 +1726,7 @@ zipx_xz_init(struct archive_read *a, struct zip *zip)
 	r = lzma_stream_decoder(&zip->zipx_lzma_stream, UINT64_MAX, 0);
 	if (r != LZMA_OK) {
 		archive_set_error(&(a->archive), ARCHIVE_ERRNO_MISC,
-		    "xz initialization failed(%d)",
+		    "xz initialization failed (%d)",
 		    r);
 
 		return (ARCHIVE_FAILED);
@@ -1775,10 +1775,10 @@ zipx_lzma_alone_init(struct archive_read *a, struct zip *zip)
 	 * "lzma alone" decoder from XZ Utils. */
 
 	memset(&zip->zipx_lzma_stream, 0, sizeof(zip->zipx_lzma_stream));
-	r = lzma_alone_decoder(&zip->zipx_lzma_stream, UINT64_MAX);
+	r = lzma_alone_decoder(&zip->zipx_lzma_stream, 576 * ((uint64_t)1 << 20));
 	if (r != LZMA_OK) {
 		archive_set_error(&(a->archive), ARCHIVE_ERRNO_MISC,
-		    "lzma initialization failed(%d)", r);
+		    "lzma initialization failed (%d)", r);
 
 		return (ARCHIVE_FAILED);
 	}
@@ -1868,8 +1868,12 @@ zipx_lzma_alone_init(struct archive_read *a, struct zip *zip)
 	 * output bytes yet. */
 	r = lzma_code(&zip->zipx_lzma_stream, LZMA_RUN);
 	if (r != LZMA_OK) {
-		archive_set_error(&a->archive, ARCHIVE_ERRNO_PROGRAMMER,
-		    "lzma stream initialization error");
+		if (r == LZMA_MEMLIMIT_ERROR)
+			archive_set_error(&a->archive, ENOMEM,
+			    "lzma stream requires too much memory");
+		else
+			archive_set_error(&a->archive, ARCHIVE_ERRNO_PROGRAMMER,
+			    "lzma stream initialization error");
 		return ARCHIVE_FATAL;
 	}
 
@@ -1921,7 +1925,7 @@ zip_read_data_zipx_xz(struct archive_read *a, const void **buff,
 	switch(lz_ret) {
 		case LZMA_DATA_ERROR:
 			archive_set_error(&a->archive, ARCHIVE_ERRNO_MISC,
-			    "xz data error (error %d)", (int) lz_ret);
+			    "xz data error (%d)", (int) lz_ret);
 			return (ARCHIVE_FATAL);
 
 		case LZMA_NO_CHECK:
@@ -1930,7 +1934,7 @@ zip_read_data_zipx_xz(struct archive_read *a, const void **buff,
 
 		default:
 			archive_set_error(&a->archive, ARCHIVE_ERRNO_MISC,
-			    "xz unknown error %d", (int) lz_ret);
+			    "xz unknown error (%d)", (int) lz_ret);
 			return (ARCHIVE_FATAL);
 
 		case LZMA_STREAM_END:
@@ -2018,7 +2022,7 @@ zip_read_data_zipx_lzma_alone(struct archive_read *a, const void **buff,
 	switch(lz_ret) {
 		case LZMA_DATA_ERROR:
 			archive_set_error(&a->archive, ARCHIVE_ERRNO_MISC,
-			    "lzma data error (error %d)", (int) lz_ret);
+			    "lzma data error (%d)", (int) lz_ret);
 			return (ARCHIVE_FATAL);
 
 		/* This case is optional in lzma alone format. It can happen,
@@ -2041,7 +2045,7 @@ zip_read_data_zipx_lzma_alone(struct archive_read *a, const void **buff,
 
 		default:
 			archive_set_error(&a->archive, ARCHIVE_ERRNO_MISC,
-			    "lzma unknown error %d", (int) lz_ret);
+			    "lzma unknown error (%d)", (int) lz_ret);
 			return (ARCHIVE_FATAL);
 	}
 
@@ -2261,7 +2265,7 @@ zipx_bzip2_init(struct archive_read *a, struct zip *zip)
 	r = BZ2_bzDecompressInit(&zip->bzstream, 0, 1);
 	if(r != BZ_OK) {
 		archive_set_error(&(a->archive), ARCHIVE_ERRNO_MISC,
-		    "bzip2 initialization failed(%d)",
+		    "bzip2 initialization failed (%d)",
 		    r);
 
 		return ARCHIVE_FAILED;
@@ -2527,7 +2531,7 @@ zip_deflate_init(struct archive_read *a, struct zip *zip)
 			    -15 /* Don't check for zlib header */);
 		if (r != Z_OK) {
 			archive_set_error(&a->archive, ARCHIVE_ERRNO_MISC,
-			    "Can't initialize ZIP decompression.");
+			    "Can't initialize ZIP decompression");
 			return (ARCHIVE_FATAL);
 		}
 		/* Stream structure has been set up. */
@@ -3193,7 +3197,7 @@ archive_read_format_zip_read_data(struct archive_read *a,
 		    != (zip->entry_uncompressed_bytes_read & UINT32_MAX)) {
 			archive_set_error(&a->archive, ARCHIVE_ERRNO_MISC,
 			    "ZIP uncompressed data is wrong size "
-			    "(read %jd, expected %jd)\n",
+			    "(read %jd, expected %jd)",
 			    (intmax_t)zip->entry_uncompressed_bytes_read,
 			    (intmax_t)zip->entry->uncompressed_size);
 			return (ARCHIVE_FAILED);

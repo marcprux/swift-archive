@@ -11,10 +11,13 @@ IF(ENABLE_TEST)
     test.h
     test_7zip_filename_encoding.c
     test_acl_nfs4.c
+    test_acl_nfs4_null_id_overflow.c
+    test_acl_nfs4_text.c
     test_acl_pax.c
     test_acl_platform_nfs4.c
     test_acl_platform_posix1e.c
     test_acl_posix1e.c
+    test_acl_posix1e_text.c
     test_acl_text.c
     test_ar_mode.c
     test_archive_api_feature.c
@@ -108,6 +111,7 @@ IF(ENABLE_TEST)
     test_read_format_7zip_encryption_data.c
     test_read_format_7zip_encryption_header.c
     test_read_format_7zip_encryption_partially.c
+    test_read_format_7zip_entries_oom.c
     test_read_format_7zip_issue2765.c
     test_read_format_7zip_malformed.c
     test_read_format_7zip_packinfo_digests.c
@@ -142,6 +146,7 @@ IF(ENABLE_TEST)
     test_read_format_gtar_sparse_skip_entry.c
     test_read_format_huge_rpm.c
     test_read_format_iso_Z.c
+    test_read_format_iso_joliet_utf16be_overflow.c
     test_read_format_iso_multi_extent.c
     test_read_format_iso_xorriso.c
     test_read_format_isojoliet_bz2.c
@@ -153,6 +158,7 @@ IF(ENABLE_TEST)
     test_read_format_isorr_new_bz2.c
     test_read_format_isorr_rr_moved.c
     test_read_format_isozisofs_bz2.c
+    test_read_format_iso_zisofs_overflow.c
     test_read_format_lha.c
     test_read_format_lha_bugfix_0.c
     test_read_format_lha_filename.c
@@ -184,6 +190,8 @@ IF(ENABLE_TEST)
     test_read_format_tar_pax_g_large.c
     test_read_format_tar_pax_large_attr.c
     test_read_format_tar_pax_negative_time.c
+    test_read_format_tar_pax_timestamps.c
+    test_read_format_tar_timestamp_overflow.c
     test_read_format_tbz.c
     test_read_format_tgz.c
     test_read_format_tlz.c
@@ -214,6 +222,7 @@ IF(ENABLE_TEST)
     test_read_format_zip_winzip_aes.c
     test_read_format_zip_winzip_aes_large.c
     test_read_format_zip_zip64.c
+    test_read_format_zip_zipx_lzma_oom.c
     test_read_format_zip_with_invalid_traditional_eocd.c
     test_read_large.c
     test_read_pax_empty_val_no_nl.c
@@ -308,11 +317,13 @@ IF(ENABLE_TEST)
     test_write_format_zip_compression_lzmaxz.c
     test_write_format_zip_compression_zstd.c
     test_write_format_zip_empty.c
+    test_write_format_zip_empty_pathname.c
     test_write_format_zip_empty_zip64.c
     test_write_format_zip_entry_size_unset.c
     test_write_format_zip_file.c
     test_write_format_zip_file_zip64.c
     test_write_format_zip_large.c
+    test_write_format_zip_long_pathname.c
     test_write_format_zip_stream.c
     test_write_format_zip_windows_path.c
     test_write_format_zip_zip64.c
