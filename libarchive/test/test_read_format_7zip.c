@@ -1476,8 +1476,8 @@ test_riscv_filter(const char *refname)
 	assertEqualIntA(a, ARCHIVE_OK, archive_read_next_header(a, &ae));
 	assertEqualInt((AE_IFREG | 0775), archive_entry_mode(ae));
 	assertEqualString("hw-riscv64", archive_entry_pathname(ae));
-	assertEqualInt(sizeof(buff), archive_entry_size(ae));
-	assertEqualInt(sizeof(buff), archive_read_data(a, buff, sizeof(buff)));
+	assertEqualIntA(a, sizeof(buff), archive_entry_size(ae));
+	assertEqualIntA(a, sizeof(buff), archive_read_data(a, buff, sizeof(buff)));
 
 	computed_crc = bitcrc32(computed_crc, buff, sizeof(buff));
 	assertEqualInt(computed_crc, expected_crc);
@@ -1500,6 +1500,8 @@ DEFINE_TEST(test_read_format_7zip_lzma2_riscv)
 
 	if (ARCHIVE_OK != archive_read_support_filter_lzma(a)) {
 		skipping("7zip:lzma decoding is not supported on this platform");
+	} else if (!lzma_filter_decoder_is_supported(LZMA_FILTER_RISCV)) {
+		skipping("liblzma does not support RISC-V BCJ filter at runtime");
 	} else {
 		test_riscv_filter("test_read_format_7zip_lzma2_riscv.7z");
 	}
