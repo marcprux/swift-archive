@@ -175,7 +175,7 @@ struct _7z_digests {
 struct _7z_folder {
 	uint64_t		 numCoders;
 	struct _7z_coder {
-		unsigned long	 codec;
+		uint64_t	 codec;
 		uint64_t	 numInStreams;
 		uint64_t	 numOutStreams;
 		uint64_t	 propertiesSize;
@@ -409,7 +409,7 @@ static int	archive_read_format_7zip_read_data_skip(struct archive_read *);
 static int	archive_read_format_7zip_read_header(struct archive_read *,
 		    struct archive_entry *);
 static int	check_7zip_header_in_sfx(const unsigned char *);
-static unsigned long decode_codec_id(const unsigned char *, size_t);
+static int	decode_codec_id(const unsigned char *, size_t, uint64_t *);
 static int	decode_encoded_header_info(struct archive_read *,
 		    struct _7z_stream_info *);
 static int	decompress(struct archive_read *, struct _7zip *,
@@ -1038,6 +1038,13 @@ archive_read_format_7zip_read_header(struct archive_read *a,
 		unsigned char *symname = NULL;
 		size_t symsize = 0;
 
+		if (zip->entry_bytes_remaining > 1024 * 1024) {
+			archive_set_error(&a->archive, ENOMEM,
+			    "Rejecting malformed 7zip archive: "
+			    "symlink contents exceed 1 megabyte");
+			return (ARCHIVE_FATAL);
+		}
+
 		/*
 		 * Symbolic-name is recorded as its contents. We have to
 		 * read the contents at this time.
@@ -1190,7 +1197,7 @@ archive_read_format_7zip_read_data_skip(struct archive_read *a)
 	 */
 	bytes_skipped = skip_stream(a, (size_t)zip->entry_bytes_remaining);
 	if (bytes_skipped < 0)
-		return (ARCHIVE_FATAL);
+		return ((int)bytes_skipped);
 	zip->entry_bytes_remaining = 0;
 
 	/* This entry is finished and done. */
@@ -1282,17 +1289,20 @@ set_error(struct archive_read *a, int ret)
 
 #endif
 
-static unsigned long
-decode_codec_id(const unsigned char *codecId, size_t id_size)
+static int
+decode_codec_id(const unsigned char *codecId, size_t id_size, uint64_t *id)
 {
 	unsigned i;
-	unsigned long id = 0;
+	uint64_t v = 0;
 
 	for (i = 0; i < id_size; i++) {
-		id <<= 8;
-		id += codecId[i];
+		if (v > (uint64_t)INT64_MAX / 256)
+			return (-1);
+		v <<= 8;
+		v += codecId[i];
 	}
-	return (id);
+	*id = v;
+	return (0);
 }
 
 static Byte
@@ -2280,7 +2290,8 @@ read_Folder(struct archive_read *a, struct _7z_folder *f)
 		if ((p = header_bytes(a, codec_size)) == NULL)
 			return (-1);
 
-		f->coders[i].codec = decode_codec_id(p, codec_size);
+		if (decode_codec_id(p, codec_size, &f->coders[i].codec) < 0)
+			return (-1);
 
 		if (simple) {
 			f->coders[i].numInStreams = 1;
@@ -2837,7 +2848,7 @@ read_Header(struct archive_read *a, struct _7z_header_info *h,
 
 		if (parse_7zip_uint64(a, &size) < 0)
 			return (-1);
-		if (zip->header_bytes_remaining < size)
+		if (zip->header_bytes_remaining < size || size > SIZE_MAX / 4)
 			return (-1);
 		ll = (size_t)size;
 
@@ -3692,7 +3703,7 @@ read_stream(struct archive_read *a, const void **buff, size_t size,
 		r = setup_decode_folder(a,
 			&(zip->si.ci.folders[zip->folder_index]), 0);
 		if (r != ARCHIVE_OK)
-			return (ARCHIVE_FATAL);
+			return (r);
 
 		zip->folder_index++;
 	}
@@ -3767,15 +3778,9 @@ setup_decode_folder(struct archive_read *a, struct _7z_folder *folder,
 	}
 
 	/*
-	 * Initialize a stream reader.
-	 */
-	zip->pack_stream_remaining = (unsigned)folder->numPackedStreams;
-	zip->pack_stream_index = (unsigned)folder->packIndex;
-	zip->folder_outbytes_remaining = folder_uncompressed_size(folder);
-	zip->uncompressed_buffer_bytes_remaining = 0;
-
-	/*
-	 * Check coder types.
+	 * Check coder types before modifying any stream-reader state, so that
+	 * an early return leaves zip unchanged (avoids partially-initialized
+	 * state that callers would have to reason about).
 	 */
 	for (i = 0; i < folder->numCoders; i++) {
 		switch(folder->coders[i].codec) {
@@ -3793,7 +3798,7 @@ setup_decode_folder(struct archive_read *a, struct _7z_folder *folder,
 					ARCHIVE_ERRNO_MISC,
 					"The %s is encrypted, "
 					"but currently not supported", cname);
-				return (ARCHIVE_FATAL);
+				return (header ? ARCHIVE_FATAL : ARCHIVE_FAILED);
 			}
 			case _7Z_X86_BCJ2: {
 				found_bcj2++;
@@ -3813,8 +3818,16 @@ setup_decode_folder(struct archive_read *a, struct _7z_folder *folder,
 		    ARCHIVE_ERRNO_MISC,
 		    "The %s is encoded with many filters, "
 		    "but currently not supported", cname);
-		return (ARCHIVE_FATAL);
+		return (header ? ARCHIVE_FATAL : ARCHIVE_FAILED);
 	}
+
+	/*
+	 * Initialize a stream reader.
+	 */
+	zip->pack_stream_remaining = (unsigned)folder->numPackedStreams;
+	zip->pack_stream_index = (unsigned)folder->packIndex;
+	zip->folder_outbytes_remaining = folder_uncompressed_size(folder);
+	zip->uncompressed_buffer_bytes_remaining = 0;
 	coder1 = &(folder->coders[0]);
 	if (folder->numCoders == 2)
 		coder2 = &(folder->coders[1]);
@@ -3835,6 +3848,7 @@ setup_decode_folder(struct archive_read *a, struct _7z_folder *folder,
 		ssize_t bytes;
 		unsigned char *b[3] = {NULL, NULL, NULL};
 		uint64_t sunpack[3] ={-1, -1, -1};
+		uint64_t remaining;
 		size_t s[3] = {0, 0, 0};
 		int idx[3] = {0, 1, 2};
 
@@ -3889,12 +3903,14 @@ setup_decode_folder(struct archive_read *a, struct _7z_folder *folder,
 			coder2 = &(fc[3]);
 			zip->main_stream_bytes_remaining =
 				(size_t)folder->unPackSize[2];
+			remaining = folder->unPackSize[2];
 		} else if (coder2 != NULL && coder2->codec == _7Z_X86_BCJ2 &&
 		    zip->pack_stream_remaining == 4 &&
 		    folder->numInStreams == 5 && folder->numOutStreams == 2) {
 			/* Source type 0 made by 7z */
 			zip->main_stream_bytes_remaining =
 				(size_t)folder->unPackSize[0];
+			remaining = folder->unPackSize[0];
 		} else {
 			/* We got an unexpected form. */
 			archive_set_error(&(a->archive),
@@ -3902,6 +3918,15 @@ setup_decode_folder(struct archive_read *a, struct _7z_folder *folder,
 			    "Unsupported form of BCJ2 streams");
 			return (ARCHIVE_FATAL);
 		}
+		if (remaining > SIZE_MAX) {
+			archive_set_error(&(a->archive),
+			    ARCHIVE_ERRNO_MISC,
+			    "7-Zip sub-stream size exceeds "
+			    "platform maximum");
+			return (ARCHIVE_FATAL);
+		}
+		zip->main_stream_bytes_remaining = remaining;
+
 
 		/* Skip the main stream at this time. */
 		if ((r = seek_pack(a)) < 0)
@@ -3933,6 +3958,14 @@ setup_decode_folder(struct archive_read *a, struct _7z_folder *folder,
 
 			/* Allocate memory for the decoded data of a sub
 			 * stream. */
+			if (zip->folder_outbytes_remaining > SIZE_MAX) {
+				free(b[0]); free(b[1]); free(b[2]);
+				archive_set_error(&a->archive,
+				    ARCHIVE_ERRNO_MISC,
+				    "7-Zip sub-stream size exceeds "
+				    "platform maximum");
+				return (ARCHIVE_FATAL);
+			}
 			b[i] = malloc((size_t)zip->folder_outbytes_remaining);
 			if (b[i] == NULL) {
 				free(b[0]); free(b[1]); free(b[2]);
@@ -4282,7 +4315,7 @@ sparc_Convert(struct _7zip *zip, uint8_t *buf, size_t size)
 	size &= ~(size_t)3;
 
 	for (i = 0; i < size; i += 4) {
-		instr = (uint32_t)(buf[i] << 24)
+		instr = ((uint32_t)buf[i] << 24)
 			| ((uint32_t)buf[i+1] << 16)
 			| ((uint32_t)buf[i+2] << 8)
 			| (uint32_t)buf[i+3];

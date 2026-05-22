@@ -3747,7 +3747,7 @@ usage(const char *program)
 
 	printf("Usage: %s [options] <test> <test> ...\n", program);
 	printf("Default is to run all tests.\n");
-	printf("Otherwise, specify the numbers of the tests you wish to run.\n");
+	printf("Otherwise, specify tests by name or number.\n");
 	printf("Options:\n");
 	printf("  -d  Dump core after any failure, for debugging.\n");
 	printf("  -k  Keep all temp files.\n");

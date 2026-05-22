@@ -341,27 +341,69 @@ INCLUDE(CheckTypeSize)
 #
 # Generate list.h
 #
-MACRO (GENERATE_LIST_H _listfile _cmlist __list_sources)
+MACRO (GENERATE_LIST_H _listfile _cmlist _target __list_sources)
   SET(_argv ${ARGV})
-  # Remove _listfile and _cmlist from _argv
-  LIST(REMOVE_AT _argv 0 1)
-  IF (NOT EXISTS "${_listfile}" OR
-     ${_cmlist} IS_NEWER_THAN "${_listfile}")
-
-    MESSAGE(STATUS "Generating ${_listfile}")
-    FILE(WRITE ${_listfile} "")
-    FOREACH (testfile ${_argv})
-      IF (testfile MATCHES "^test_[^/]+[.]c$")
-        FILE(STRINGS ${testfile} testvar REGEX "^DEFINE_TEST")
-        FOREACH (deftest ${testvar})
-          FILE(APPEND ${_listfile} "${deftest}\n")
-        ENDFOREACH (deftest)
-      ENDIF (testfile MATCHES "^test_[^/]+[.]c$")
-    ENDFOREACH (testfile)
-
-  ENDIF (NOT EXISTS "${_listfile}" OR
-     ${_cmlist} IS_NEWER_THAN "${_listfile}")
+  # Remove _listfile, _cmlist, and _target from _argv
+  LIST(REMOVE_AT _argv 0 1 2)
+  # Convert source paths to absolute so discover_tests.cmake can find them
+  # regardless of the working directory when cmake -P runs.
+  SET(_gl_abs_sources "")
+  FOREACH(_gl_src ${_argv})
+    IF(IS_ABSOLUTE "${_gl_src}")
+      LIST(APPEND _gl_abs_sources "${_gl_src}")
+    ELSE()
+      LIST(APPEND _gl_abs_sources "${CMAKE_CURRENT_SOURCE_DIR}/${_gl_src}")
+    ENDIF()
+  ENDFOREACH()
+  # Stamp out discover_tests.cmake with source list and output path baked in.
+  SET(SOURCES "${_gl_abs_sources}")
+  SET(OUTPUT "${_listfile}")
+  CONFIGURE_FILE(
+    ${CMAKE_SOURCE_DIR}/build/cmake/discover_tests.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/discover_tests.cmake
+    @ONLY)
+  UNSET(SOURCES)
+  UNSET(OUTPUT)
+  # list.h is regenerated at build time whenever any test .c file changes.
+  ADD_CUSTOM_COMMAND(
+    OUTPUT "${_listfile}"
+    COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/discover_tests.cmake
+    DEPENDS ${_gl_abs_sources}
+    COMMENT "Generating ${_listfile}"
+    VERBATIM)
+  # Attaching list.h to the target tells CMake to build it before compiling.
+  TARGET_SOURCES(${_target} PRIVATE "${_listfile}")
 ENDMACRO (GENERATE_LIST_H)
+
+#
+# Register individual tests with CTest by scanning DEFINE_TEST() declarations.
+#
+MACRO (DISCOVER_TESTS _component __list_sources)
+  IF(ENABLE_TEST)
+    SET(_sources ${ARGV})
+    LIST(REMOVE_AT _sources 0)
+    FOREACH (_src ${_sources})
+      IF (_src MATCHES "test_[^/]+\\.c$")
+        FILE(STRINGS "${_src}" _lines REGEX "^DEFINE_TEST\(.*\)")
+        FOREACH (_line ${_lines})
+          STRING(REGEX MATCH "DEFINE_TEST\((.*)\)" _full_match ${_line})
+          # CMake REGEX seems to handle ( and \( rather inconsistently...
+          # So we go through an extra dance to definitively strip the parens
+          STRING(REPLACE "(" "" _test_name_with_paren "${CMAKE_MATCH_1}")
+          STRING(REPLACE ")" "" _test_name "${_test_name_with_paren}")
+          SET(_full_test_name "${_component}_${_test_name}")
+          ADD_TEST(NAME ${_full_test_name}
+                   COMMAND ${_component}_test -vv
+                                   -r ${CMAKE_CURRENT_SOURCE_DIR}
+                                   -s
+                                   ${_test_name})
+          SET_TESTS_PROPERTIES(${_full_test_name} PROPERTIES SKIP_RETURN_CODE 2)
+        ENDFOREACH (_line)
+      ENDIF (_src MATCHES "test_[^/]+\\.c$")
+    ENDFOREACH (_src)
+  ENDIF(ENABLE_TEST)
+ENDMACRO (DISCOVER_TESTS __list_sources)
+
 #
 # Generate installation rules for man pages.
 #
