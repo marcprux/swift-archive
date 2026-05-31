@@ -6,7 +6,7 @@
 
 A Swift Package that compiles [libarchive](https://libarchive.org) from source and provides an idiomatic Swift API for reading and writing archive files.
 
-[API documentation](https://swiftpackageindex.com/marcprux/swift-archive/main/documentation/archive)
+[API documentation](https://swiftpackageindex.com/marcprux/swift-archive/swift/documentation/archive)
 
 ## Installation
 
