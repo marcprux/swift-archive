@@ -29,7 +29,7 @@ let package = Package(
             exclude: [ "test" ],
             publicHeadersPath: ".",
             cSettings: [
-                .headerSearchPath("../contrib/android/include", .when(platforms: [.android])),
+                .headerSearchPath("contrib/android/include", .when(platforms: [.android])),
                 .define("PLATFORM_CONFIG_H", to: "\"config_spm.h\""),
                 .define("HAVE_ZLIB_H", .when(traits: ["GzipSupport"])),
                 .define("HAVE_LIBZ", .when(traits: ["GzipSupport"])),
@@ -53,7 +53,6 @@ let package = Package(
         ),
         .systemLibrary(
             name: "Cliblzma",
-            path: "contrib/Swift/Sources/Cliblzma",
             pkgConfig: "liblzma",
             providers: [
                 .brew(["xz"]),
@@ -62,7 +61,6 @@ let package = Package(
         ),
         .systemLibrary(
             name: "Clibzstd",
-            path: "contrib/Swift/Sources/Clibzstd",
             pkgConfig: "libzstd",
             providers: [
                 .brew(["zstd"]),
@@ -71,13 +69,11 @@ let package = Package(
         ),
         .target(
             name: "Archive",
-            dependencies: ["CArchive"],
-            path: "contrib/Swift/Sources/Archive"
+            dependencies: ["CArchive"]
         ),
         .testTarget(
             name: "ArchiveTests",
-            dependencies: ["Archive"],
-            path: "contrib/Swift/Tests/ArchiveTests"
+            dependencies: ["Archive"]
         ),
     ]
 )
