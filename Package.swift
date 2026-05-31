@@ -29,7 +29,7 @@ let package = Package(
             exclude: [ "test" ],
             publicHeadersPath: ".",
             cSettings: [
-                .headerSearchPath("contrib/android/include", .when(platforms: [.android])),
+                .headerSearchPath("../contrib/android/include", .when(platforms: [.android])),
                 .define("PLATFORM_CONFIG_H", to: "\"config_spm.h\""),
                 .define("HAVE_ZLIB_H", .when(traits: ["GzipSupport"])),
                 .define("HAVE_LIBZ", .when(traits: ["GzipSupport"])),
