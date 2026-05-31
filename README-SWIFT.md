@@ -1,6 +1,12 @@
-# Swift libarchive Wrapper
+# swift-libarchive
+
+[![Build Status](https://github.com/marcprux/swift-archive/workflows/Swift%20CI/badge.svg)](https://github.com/marcprux/swift-archive/actions)
+[![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fmarcprux%2Fswift-archive%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/marcprux/swift-archive)
+[![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fmarcprux%2Fswift-archive%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/marcprux/swift-archive)
 
 A Swift Package that compiles [libarchive](https://libarchive.org) from source and provides an idiomatic Swift API for reading and writing archive files.
+
+[API documentation](https://swiftpackageindex.com/marcprux/swift-archive/main/documentation/archive)
 
 ## Installation
 
@@ -172,3 +178,16 @@ The package has three targets:
 1. **CArchive** — C target that compiles libarchive sources directly
 2. **Archive** — Swift wrapper with idiomatic API
 3. **ArchiveTests** — Tests using Swift Testing framework
+
+## About This Fork
+
+This repository is a purely additive fork of [libarchive/libarchive](https://github.com/libarchive/libarchive.git). No upstream files are modified, deleted, or patched; the fork only overlays the following Swift-specific additions on top of the original tree:
+
+- `Package.swift` — Swift Package Manager manifest that compiles libarchive sources directly and declares the Swift targets and traits.
+- `Sources/Archive/` — The idiomatic Swift wrapper API (`ArchiveReader`, `ArchiveWriter`, `ArchiveEntry`, etc.).
+- `Sources/Cliblzma/` and `Sources/Clibzstd/` — Module maps for optional system libraries used by the `LZMASupport` and `ZstdSupport` traits.
+- `Tests/ArchiveTests/` — Swift Testing-based test suite for the wrapper.
+- `README-SWIFT.md` — This document.
+
+Because the fork is strictly additive, it can be kept in sync with upstream by merging `libarchive/libarchive` directly with no conflict resolution against the C sources. The Swift overlay treats libarchive as an upstream dependency consumed in-place via SwiftPM, rather than vendoring a snapshot.
+
