@@ -666,6 +666,7 @@ libarchive_test_SOURCES= \
 	libarchive/test/test_write_format_iso9660_empty.c \
 	libarchive/test/test_write_format_iso9660_filename.c \
 	libarchive/test/test_write_format_iso9660_joliet_id.c \
+	libarchive/test/test_write_format_iso9660_rockridge.c \
 	libarchive/test/test_write_format_iso9660_zisofs.c \
 	libarchive/test/test_write_format_mtree.c \
 	libarchive/test/test_write_format_mtree_absolute.c \
@@ -683,6 +684,7 @@ libarchive_test_SOURCES= \
 	libarchive/test/test_write_format_raw_b64.c \
 	libarchive/test/test_write_format_shar_empty.c \
 	libarchive/test/test_write_format_tar.c \
+	libarchive/test/test_write_format_tar_empty_dirname.c \
 	libarchive/test/test_write_format_tar_empty.c \
 	libarchive/test/test_write_format_tar_sparse.c \
 	libarchive/test/test_write_format_tar_ustar.c \
@@ -692,6 +694,7 @@ libarchive_test_SOURCES= \
 	libarchive/test/test_write_format_xar.c \
 	libarchive/test/test_write_format_xar_bugs.c \
 	libarchive/test/test_write_format_xar_empty.c \
+	libarchive/test/test_write_format_xar_fflags.c \
 	libarchive/test/test_write_format_zip.c \
 	libarchive/test/test_write_format_zip64_stream.c \
 	libarchive/test/test_write_format_zip_compression_store.c \

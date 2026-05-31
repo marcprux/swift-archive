@@ -297,6 +297,7 @@ IF(ENABLE_TEST)
     test_write_format_iso9660_empty.c
     test_write_format_iso9660_filename.c
     test_write_format_iso9660_joliet_id.c
+    test_write_format_iso9660_rockridge.c
     test_write_format_iso9660_zisofs.c
     test_write_format_iso9660_bugs.c
     test_write_format_mtree.c
@@ -315,6 +316,7 @@ IF(ENABLE_TEST)
     test_write_format_raw_b64.c
     test_write_format_shar_empty.c
     test_write_format_tar.c
+    test_write_format_tar_empty_dirname.c
     test_write_format_tar_empty.c
     test_write_format_tar_sparse.c
     test_write_format_tar_ustar.c
@@ -323,6 +325,7 @@ IF(ENABLE_TEST)
     test_write_format_warc_empty.c
     test_write_format_xar.c
     test_write_format_xar_empty.c
+    test_write_format_xar_fflags.c
     test_write_format_xar_bugs.c
     test_write_format_zip.c
     test_write_format_zip64_stream.c

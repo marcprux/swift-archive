@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2014 Michihiro NAKAJIMA
+ * Copyright (c) 2026 Tobias Stoeckmann
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,52 +24,59 @@
  */
 #include "test.h"
 
-DEFINE_TEST(test_read_format_lha_bugfix_0)
+static void
+test_format(int (*set_format)(struct archive *))
 {
-	const char *refname = "test_read_format_lha_bugfix_0.lzh";
-	struct archive_entry *ae;
 	struct archive *a;
-	const void *pv;
-	size_t s;
-	int64_t o;
+	struct archive_entry *entry;
+	char buff[2048];
+	size_t used;
 
-	extract_reference_file(refname);
+	/* Create a new archive in memory. */
+	assert((a = archive_write_new()) != NULL);
+	assertA(0 == set_format(a));
+	assertA(0 == archive_write_add_filter_none(a));
+	assertA(0 == archive_write_set_bytes_per_block(a, 512));
+	assertA(0 == archive_write_set_bytes_in_last_block(a, 512));
+	assertA(0 == archive_write_open_memory(a, buff, sizeof(buff), &used));
+
+	/* Write directory with empty wide character name */
+	assert((entry = archive_entry_new()) != NULL);
+	archive_entry_copy_pathname_w(entry, L"");
+	archive_entry_set_mode(entry, S_IFDIR | 0755);
+	archive_entry_set_uid(entry, 0);
+	archive_entry_set_gid(entry, 0);
+	assertEqualIntA(a, ARCHIVE_OK, archive_write_header(a, entry));
+
+	/* Close out the archive. */
+	archive_entry_free(entry);
+	assertEqualIntA(a, ARCHIVE_OK, archive_write_close(a));
+	assertEqualInt(ARCHIVE_OK, archive_write_free(a));
+
+	/*
+	 * Now, read the data back.
+	 */
 	assert((a = archive_read_new()) != NULL);
-	assertEqualIntA(a, ARCHIVE_OK, archive_read_support_filter_all(a));
 	assertEqualIntA(a, ARCHIVE_OK, archive_read_support_format_all(a));
+	assertEqualIntA(a, ARCHIVE_OK, archive_read_support_filter_all(a));
 	assertEqualIntA(a, ARCHIVE_OK,
-	    archive_read_open_filename(a, refname, 10240));
+	    archive_read_open_memory(a, buff, used));
+	assertEqualIntA(a, ARCHIVE_OK,
+	    archive_read_next_header(a, &entry));
+	assertEqualString("", archive_entry_pathname(entry));
 
-	/* Verify directory1.  */
-	assertEqualIntA(a, ARCHIVE_OK, archive_read_next_header(a, &ae));
-	assertEqualString("f", archive_entry_pathname(ae));
-	assertEqualInt(776, archive_entry_size(ae));
-	assertEqualIntA(a, ARCHIVE_OK,
-	    archive_read_data_block(a, &pv, &s, &o));
-	assertEqualInt(s, 776);
+	/* Verify the end of the archive. */
 	assertEqualIntA(a, ARCHIVE_EOF,
-	    archive_read_data_block(a, &pv, &s, &o));
-	assertEqualInt(archive_entry_is_encrypted(ae), 0);
-	assertEqualIntA(a, archive_read_has_encrypted_entries(a),
-		ARCHIVE_READ_FORMAT_ENCRYPTION_UNSUPPORTED);
-
-	/* End of archive. */
-	assertEqualIntA(a, ARCHIVE_EOF, archive_read_next_header(a, &ae));
-
-	/* Verify the number of files read. */
-	assertEqualInt(1, archive_file_count(a));
-
-	/* Verify encryption status */
-	assertEqualInt(archive_entry_is_encrypted(ae), 0);
-	assertEqualIntA(a, archive_read_has_encrypted_entries(a),
-		ARCHIVE_READ_FORMAT_ENCRYPTION_UNSUPPORTED);
-
-	/* Verify archive format. */
-	assertEqualIntA(a, ARCHIVE_FILTER_NONE, archive_filter_code(a, 0));
-	assertEqualIntA(a, ARCHIVE_FORMAT_LHA, archive_format(a));
-
-	/* Close the archive. */
+	    archive_read_next_header(a, &entry));
 	assertEqualIntA(a, ARCHIVE_OK, archive_read_close(a));
 	assertEqualInt(ARCHIVE_OK, archive_read_free(a));
+
 }
 
+DEFINE_TEST(test_write_format_tar_empty_dirname)
+{
+	test_format(archive_write_set_format_gnutar);
+	test_format(archive_write_set_format_pax);
+	test_format(archive_write_set_format_ustar);
+	test_format(archive_write_set_format_v7tar);
+}
