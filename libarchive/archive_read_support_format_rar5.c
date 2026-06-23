@@ -81,7 +81,9 @@
  *
  * The array itself is decrypted in `rar5_init` function. */
 
-static unsigned char rar5_signature_xor[] = { 243, 192, 211, 128, 187, 166, 160, 161 };
+static const unsigned char rar5_signature_xor[] = {
+	243, 192, 211, 128, 187, 166, 160, 161
+};
 static const size_t g_unpack_window_size = 0x20000;
 
 /* These could have been static const's, but they aren't, because of
@@ -905,11 +907,10 @@ static inline int get_archive_read(struct archive* a,
 static int read_ahead(struct archive_read* a, size_t how_many,
     const uint8_t** ptr)
 {
-	ssize_t avail = -1;
 	if(!ptr)
 		return 0;
 
-	*ptr = __archive_read_ahead(a, how_many, &avail);
+	*ptr = __archive_read_ahead(a, how_many, NULL);
 	if(*ptr == NULL) {
 		return 0;
 	}
@@ -1046,10 +1047,7 @@ static int read_bits_32(struct archive_read* a, struct rar5* rar,
 		return ARCHIVE_FATAL;
 	}
 
-	uint32_t bits = ((uint32_t) p[rar->bits.in_addr]) << 24;
-	bits |= p[rar->bits.in_addr + 1] << 16;
-	bits |= p[rar->bits.in_addr + 2] << 8;
-	bits |= p[rar->bits.in_addr + 3];
+	uint32_t bits = archive_be32dec(p + rar->bits.in_addr);
 	bits <<= rar->bits.bit_addr;
 	bits |= p[rar->bits.in_addr + 4] >> (8 - rar->bits.bit_addr);
 	*value = bits;
@@ -1066,9 +1064,7 @@ static int read_bits_16(struct archive_read* a, struct rar5* rar,
 		return ARCHIVE_FATAL;
 	}
 
-	int bits = (int) ((uint32_t) p[rar->bits.in_addr]) << 16;
-	bits |= (int) p[rar->bits.in_addr + 1] << 8;
-	bits |= (int) p[rar->bits.in_addr + 2];
+	uint32_t bits = archive_be24dec(p + (unsigned)rar->bits.in_addr);
 	bits >>= (8 - rar->bits.bit_addr);
 	*value = bits & 0xffff;
 	return ARCHIVE_OK;
@@ -1790,6 +1786,13 @@ static int process_head_file(struct archive_read* a, struct rar5* rar,
 		if(!read_var_sized(a, &data_size, NULL))
 			return ARCHIVE_EOF;
 
+		if(data_size > SSIZE_MAX) {
+			archive_set_error(&a->archive,
+			    ARCHIVE_ERRNO_FILE_FORMAT,
+			    "File data size is too large");
+			return ARCHIVE_FATAL;
+		}
+
 		rar->file.bytes_remaining = data_size;
 	} else {
 		rar->file.bytes_remaining = 0;
@@ -1946,29 +1949,20 @@ static int process_head_file(struct archive_read* a, struct rar5* rar,
 		archive_entry_set_mode(entry, mode);
 
 		if (file_attr & (ATTR_READONLY | ATTR_HIDDEN | ATTR_SYSTEM)) {
-			char *fflags_text, *ptr;
-			/* allocate for ",rdonly,hidden,system" */
-			fflags_text = malloc(22 * sizeof(*fflags_text));
-			if (fflags_text != NULL) {
-				ptr = fflags_text;
-				if (file_attr & ATTR_READONLY) {
-					strcpy(ptr, ",rdonly");
-					ptr = ptr + 7;
-				}
-				if (file_attr & ATTR_HIDDEN) {
-					strcpy(ptr, ",hidden");
-					ptr = ptr + 7;
-				}
-				if (file_attr & ATTR_SYSTEM) {
-					strcpy(ptr, ",system");
-					ptr = ptr + 7;
-				}
-				if (ptr > fflags_text) {
-					archive_entry_copy_fflags_text(entry,
-					    fflags_text + 1);
-				}
-				free(fflags_text);
-			}
+			char buf[sizeof(",rdonly,hidden,system")];
+			char *fflags[3] = { "", "", "" };
+			char **flag = fflags;
+
+			if (file_attr & ATTR_READONLY)
+				*flag++ = ",rdonly";
+			if (file_attr & ATTR_HIDDEN)
+				*flag++ = ",hidden";
+			if (file_attr & ATTR_SYSTEM)
+				*flag++ = ",system";
+
+			snprintf(buf, sizeof(buf), "%s%s%s",
+			    fflags[0], fflags[1], fflags[2]);
+			archive_entry_copy_fflags_text(entry, buf + 1);
 		}
 	} else if(host_os == HOST_UNIX) {
 		/* Host OS is Unix */
@@ -2274,6 +2268,33 @@ static int scan_for_signature(struct archive_read* a);
  * <FILE> block.
  */
 
+/*
+ * A header that carries no file data (HEAD_MAIN, or an unknown block
+ * flagged HFL_SKIP_IF_UNKNOWN) may leave bytes in its body that the
+ * sub-parser did not read. Skip them before returning ARCHIVE_RETRY,
+ * otherwise rar5_read_header() re-parses the same block region O(N)
+ * times instead of O(1), letting a crafted RAR5 file stall the reader
+ * (GHSA-9h2c-464f-j3hj).
+ *
+ * Safe because read_ahead(a, hdr_size, &p) pre-loaded the whole block
+ * into one contiguous buffer with no compaction until we return, so
+ * body_start stays valid and (cur - body_start) is the exact number of
+ * body bytes consumed so far.
+ */
+static void
+rar5_skip_remaining_block(struct archive_read* a,
+    const uint8_t* body_start, size_t raw_hdr_size)
+{
+	const uint8_t* cur;
+
+	if(read_ahead(a, 1, &cur)) {
+		size_t body_used = (size_t)(cur - body_start);
+
+		if(body_used < raw_hdr_size)
+			(void)consume(a, raw_hdr_size - body_used);
+	}
+}
+
 static int process_base_block(struct archive_read* a,
     struct archive_entry* entry)
 {
@@ -2285,6 +2306,7 @@ static int process_base_block(struct archive_read* a,
 	size_t header_id = 0;
 	size_t header_flags = 0;
 	const uint8_t* p;
+	const uint8_t* body_start;
 	int ret;
 
 	enum HEADER_TYPE {
@@ -2346,6 +2368,10 @@ static int process_base_block(struct archive_read* a,
 #endif
 	}
 
+	/* Remember the first byte of the block body so we can later skip
+	 * any bytes the sub-parser leaves unconsumed. */
+	body_start = p + hdr_size_len;
+
 	/* If the checksum is OK, we proceed with parsing. */
 	if(ARCHIVE_OK != consume(a, hdr_size_len)) {
 		return ARCHIVE_EOF;
@@ -2371,8 +2397,11 @@ static int process_base_block(struct archive_read* a,
 			/* Main header doesn't have any files in it, so it's
 			 * pointless to return to the caller. Retry to next
 			 * header, which should be HEAD_FILE/HEAD_SERVICE. */
-			if(ret == ARCHIVE_OK)
+			if(ret == ARCHIVE_OK) {
+				rar5_skip_remaining_block(a, body_start,
+				    raw_hdr_size);
 				return ARCHIVE_RETRY;
+			}
 
 			return ret;
 		case HEAD_SERVICE:
@@ -2432,6 +2461,8 @@ static int process_base_block(struct archive_read* a,
 				/* If the block is marked as 'skip if unknown',
 				 * do as the flag says: skip the block
 				 * instead on failing on it. */
+				rar5_skip_remaining_block(a, body_start,
+				    raw_hdr_size);
 				return ARCHIVE_RETRY;
 			}
 	}
@@ -3536,12 +3567,13 @@ static int merge_block(struct archive_read* a, ssize_t block_size,
 		cur_block_size = rar5_min(rar->file.bytes_remaining,
 		    block_size - partial_offset);
 
-		if(cur_block_size == 0) {
-			/* bytes_remaining is 0 at the wrong point in the merge
-			 * loop, indicating corrupt volume accounting. */
+		if(cur_block_size < 1) {
+			/* bytes_remaining is less than 1 at the wrong point in
+			 * the merge loop, indicating corrupt volume
+			 * accounting. */
 			archive_set_error(&a->archive,
 			    ARCHIVE_ERRNO_FILE_FORMAT,
-			    "Encountered block size == 0 during block merge");
+			    "Encountered invalid block size during block merge");
 			rar->cstate.switch_multivolume = 0;
 			return ARCHIVE_FATAL;
 		}
@@ -3649,6 +3681,15 @@ static int process_block(struct archive_read* a) {
 		 * if present. */
 		to_skip = sizeof(struct compressed_block_header) +
 			bf_byte_count(&rar->last_block_hdr) + 1;
+
+		/* If the block header's to_skip value exceeds the declared
+		 * remaining data, the archive is malformed. */
+		if(to_skip > rar->file.bytes_remaining) {
+			archive_set_error(&a->archive,
+			    ARCHIVE_ERRNO_FILE_FORMAT,
+			    "Block header size exceeds remaining file data");
+			return ARCHIVE_FATAL;
+		}
 
 		if(ARCHIVE_OK != consume(a, to_skip))
 			return ARCHIVE_EOF;

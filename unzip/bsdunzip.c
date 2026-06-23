@@ -9,6 +9,7 @@
 #include "bsdunzip_platform.h"
 
 #include "la_queue.h"
+#include "lafe_fnmatch.h"
 #include "lafe_getline.h"
 #ifdef HAVE_SYS_STAT_H
 #include <sys/stat.h>
@@ -304,12 +305,8 @@ match_pattern(struct pattern_list *list, const char *str)
 	struct pattern *entry;
 
 	STAILQ_FOREACH(entry, list, link) {
-#ifdef HAVE_FNMATCH
 		if (fnmatch(entry->pattern, str, C_opt ? FNM_CASEFOLD : 0) == 0)
 			return (1);
-#else
-#error "Unsupported platform: fnmatch() is required"
-#endif
 	}
 	return (0);
 }
@@ -741,6 +738,14 @@ recheck:
 		error("close('%s')", *path);
 }
 
+static int
+pathname_is_insecure(const char* pathname)
+{
+	return (pathname[0] == '/' ||
+	    strncmp(pathname, "../", 3) == 0 ||
+	    strstr(pathname, "/../") != NULL);
+}
+
 /*
  * Extract a zipfile entry: first perform some sanity checks to ensure
  * that it is either a directory or a regular file and that the path is
@@ -760,6 +765,7 @@ static void
 extract(struct archive *a, struct archive_entry *e)
 {
 	char *pathname, *realpathname;
+	const char *linktarget;
 	mode_t filetype;
 	char *p, *q;
 
@@ -771,10 +777,17 @@ extract(struct archive *a, struct archive_entry *e)
 	filetype = archive_entry_filetype(e);
 
 	/* sanity checks */
-	if (pathname[0] == '/' ||
-	    strncmp(pathname, "../", 3) == 0 ||
-	    strstr(pathname, "/../") != NULL) {
+	if (pathname_is_insecure(pathname)) {
 		warningx("skipping insecure entry '%s'", pathname);
+		ac(archive_read_data_skip(a));
+		free(pathname);
+		return;
+	}
+
+	if (S_ISLNK(filetype) &&
+	    ((linktarget = archive_entry_symlink(e)) != NULL) &&
+	    pathname_is_insecure(linktarget)) {
+		warningx("skipping insecure symlink '%s' to '%s'", pathname, linktarget);
 		ac(archive_read_data_skip(a));
 		free(pathname);
 		return;

@@ -104,12 +104,14 @@ IF(ENABLE_TEST)
     test_read_filter_grzip.c
     test_read_filter_gzip_recursive.c
     test_read_filter_lrzip.c
+    test_read_filter_lz4_raw.c
     test_read_filter_lzop.c
     test_read_filter_lzop_multiple_parts.c
     test_read_filter_program.c
     test_read_filter_program_signature.c
     test_read_filter_uudecode.c
     test_read_filter_uudecode_raw.c
+    test_read_filter_zstd_raw.c
     test_read_format_7zip.c
     test_read_format_7zip_encryption_data.c
     test_read_format_7zip_encryption_header.c
@@ -123,6 +125,7 @@ IF(ENABLE_TEST)
     test_read_format_cab_filename.c
     test_read_format_cab_lzx_oob.c
     test_read_format_cab_mszip_oob.c
+    test_read_format_cab_multi.c
     test_read_format_cab_skip_malformed.c
     test_read_format_cpio_afio.c
     test_read_format_cpio_bin.c
@@ -159,6 +162,7 @@ IF(ENABLE_TEST)
     test_read_format_isojoliet_versioned.c
     test_read_format_isorr_bz2.c
     test_read_format_isorr_ce.c
+    test_read_format_isorr_ce_loop.c
     test_read_format_isorr_new_bz2.c
     test_read_format_isorr_rr_moved.c
     test_read_format_isozisofs_bz2.c
@@ -230,6 +234,7 @@ IF(ENABLE_TEST)
     test_read_format_zip_winzip_aes.c
     test_read_format_zip_winzip_aes_large.c
     test_read_format_zip_zip64.c
+    test_read_format_zip_zipx_encrypted.c
     test_read_format_zip_zipx_lzma_oom.c
     test_read_format_zip_with_invalid_traditional_eocd.c
     test_read_large.c
@@ -346,6 +351,7 @@ IF(ENABLE_TEST)
     test_write_format_zip_zip64.c
     test_write_open_memory.c
     test_write_read_format_zip.c
+    test_xattr_clear.c
     test_xattr_platform.c
     test_zip_filename_encoding.c
   )

@@ -40,6 +40,7 @@
 #endif
 
 #include "archive.h"
+#include "archive_integer.h"
 #include "archive_private.h"
 #include "archive_entry.h"
 #include "archive_pathmatch.h"
@@ -643,11 +644,12 @@ add_pattern_from_file(struct archive_match *a, struct match_list *mlist,
 	}
 	r = archive_read_next_header(ar, &ae);
 	if (r != ARCHIVE_OK) {
-		archive_read_free(ar);
 		if (r == ARCHIVE_EOF) {
+			archive_read_free(ar);
 			return (ARCHIVE_OK);
 		} else {
 			archive_copy_error(&(a->archive), ar);
+			archive_read_free(ar);
 			return (r);
 		}
 	}
@@ -1698,15 +1700,22 @@ add_owner_id(struct archive_match *a, struct id_array *ids, int64_t id)
 
 	if (ids->count + 1 >= ids->size) {
 		void *p;
+		size_t alloc_size, new_size;
 
 		if (ids->size == 0)
-			ids->size = 8;
-		else
-			ids->size *= 2;
-		p = realloc(ids->ids, sizeof(*ids->ids) * ids->size);
+			new_size = 8;
+		else {
+			if (archive_ckd_mul_size(&new_size, ids->size, 2))
+				return (error_nomem(a));
+		}
+		if (archive_ckd_mul_size(&alloc_size,
+		    new_size, sizeof(*ids->ids)))
+			return (error_nomem(a));
+		p = realloc(ids->ids, alloc_size);
 		if (p == NULL)
 			return (error_nomem(a));
 		ids->ids = (int64_t *)p;
+		ids->size = new_size;
 	}
 
 	/* Find an insert point. */

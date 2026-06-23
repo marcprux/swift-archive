@@ -66,8 +66,7 @@ static int	bzip2_filter_close(struct archive_read_filter *);
 /*
  * Note that we can detect bzip2 archives even if we can't decompress
  * them.  (In fact, we like detecting them because we can give better
- * error messages.)  So the bid framework here gets compiled even
- * if bzlib is unavailable.
+ * error messages.)
  */
 static int	bzip2_reader_bid(struct archive_read_filter_bidder *, struct archive_read_filter *);
 static int	bzip2_reader_init(struct archive_read_filter *);
@@ -116,13 +115,12 @@ static int
 bzip2_reader_bid(struct archive_read_filter_bidder *self, struct archive_read_filter *filter)
 {
 	const unsigned char *buffer;
-	ssize_t avail;
 	int bits_checked;
 
 	(void)self; /* UNUSED */
 
 	/* Minimal bzip2 archive is 14 bytes. */
-	buffer = __archive_read_filter_ahead(filter, 14, &avail);
+	buffer = __archive_read_filter_ahead(filter, 14, NULL);
 	if (buffer == NULL)
 		return (0);
 
@@ -153,9 +151,9 @@ bzip2_reader_bid(struct archive_read_filter_bidder *self, struct archive_read_fi
 #if !defined(HAVE_BZLIB_H) || !defined(BZ_CONFIG_ERROR)
 
 /*
- * If we don't have the library on this system, we can't actually do the
- * decompression.  We can, however, still detect compressed archives
- * and emit a useful message.
+ * If we don't have the library on this system, we can't do the
+ * decompression directly.  We can, however, try to run "bzip2 -d"
+ * in case that's available.
  */
 static int
 bzip2_reader_init(struct archive_read_filter *self)
@@ -298,14 +296,6 @@ bzip2_filter_read(struct archive_read_filter *self, const void **p)
 		if (ret > max_in)
 			ret = max_in;
 		state->stream.avail_in = (uint32_t)ret;
-		/* There is no more data, return whatever we have. */
-		if (ret == 0) {
-			state->eof = 1;
-			*p = state->out_block;
-			decompressed = state->stream.next_out
-			    - state->out_block;
-			return (decompressed);
-		}
 
 		/* Decompress as much as we can in one pass. */
 		ret = BZ2_bzDecompress(&(state->stream));

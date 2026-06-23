@@ -819,9 +819,7 @@ xar_finish_entry(struct archive_write *a)
 		if (s > a->null_length)
 			s = a->null_length;
 		w = xar_write_data(a, a->nulls, s);
-		if (w > 0)
-			xar->bytes_remaining -= w;
-		else
+		if (w <= 0)
 			return ((int)w);
 	}
 	file = xar->cur_file;
@@ -1439,7 +1437,7 @@ make_file_entry(struct archive_write *a, struct xml_writer *writer,
 	}
 
 	/*
-	 * Make a mtime entry, "<mtime>".
+	 * Make an mtime entry, "<mtime>".
 	 */
 	if (archive_entry_mtime_is_set(file->entry)) {
 		r = xmlwrite_time(a, writer, "mtime",
@@ -1866,7 +1864,8 @@ copy_out(struct archive_write *a, uint64_t offset, uint64_t length)
 			return (ARCHIVE_FATAL);
 		}
 		if (rs == 0) {
-			archive_set_error(&(a->archive), 0,
+			archive_set_error(&(a->archive),
+			    ARCHIVE_ERRNO_FILE_FORMAT,
 			    "Truncated xar archive");
 			return (ARCHIVE_FATAL);
 		}

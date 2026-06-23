@@ -117,7 +117,6 @@ archive_read_support_filter_lzop(struct archive *_a)
 #if defined(HAVE_LZO_LZOCONF_H) && defined(HAVE_LZO_LZO1X_H)
 	return (ARCHIVE_OK);
 #else
-	/* Return ARCHIVE_WARN since this always uses an external program. */
 	archive_set_error(_a, ARCHIVE_ERRNO_MISC,
 	    "Using external lzop program for lzop decompression");
 	return (ARCHIVE_WARN);
@@ -132,12 +131,11 @@ lzop_bidder_bid(struct archive_read_filter_bidder *self,
     struct archive_read_filter *filter)
 {
 	const unsigned char *p;
-	ssize_t avail;
 
 	(void)self; /* UNUSED */
 
-	p = __archive_read_filter_ahead(filter, LZOP_HEADER_MAGIC_LEN, &avail);
-	if (p == NULL || avail == 0)
+	p = __archive_read_filter_ahead(filter, LZOP_HEADER_MAGIC_LEN, NULL);
+	if (p == NULL)
 		return (0);
 
 	if (memcmp(p, LZOP_HEADER_MAGIC, LZOP_HEADER_MAGIC_LEN))
@@ -428,7 +426,7 @@ lzop_filter_read(struct archive_read_filter *self, const void **p)
 	}
 
 	/*
-	 * If the both uncompressed size and compressed size are the same,
+	 * If both uncompressed size and compressed size are the same,
 	 * we do not decompress this block.
 	 */
 	if (state->uncompressed_size == state->compressed_size) {

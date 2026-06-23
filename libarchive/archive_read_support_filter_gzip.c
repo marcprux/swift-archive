@@ -70,12 +70,7 @@ static int	gzip_filter_close(struct archive_read_filter *);
 /*
  * Note that we can detect gzip archives even if we can't decompress
  * them.  (In fact, we like detecting them because we can give better
- * error messages.)  So the bid framework here gets compiled even
- * if zlib is unavailable.
- *
- * TODO: If zlib is unavailable, gzip_bidder_init() should
- * use the compress_program framework to try to fire up an external
- * gzip program.
+ * error messages.)
  */
 static int	gzip_bidder_bid(struct archive_read_filter_bidder *,
 		    struct archive_read_filter *);
@@ -145,7 +140,7 @@ peek_at_header(struct archive_read_filter *filter, int *pbits,
 	 * is all fixed layout. */
 	len = 10;
 	p = __archive_read_filter_ahead(filter, len, &avail);
-	if (p == NULL || avail == 0)
+	if (p == NULL)
 		return (0);
 	/* We only support deflation- third byte must be 0x08. */
 	if (memcmp(p, "\x1F\x8B\x08", 3) != 0)
@@ -170,7 +165,7 @@ peek_at_header(struct archive_read_filter *filter, int *pbits,
 		p = __archive_read_filter_ahead(filter, len + 2, &avail);
 		if (p == NULL)
 			return (0);
-		len += ((int)p[len + 1] << 8) | (int)p[len];
+		len += archive_le16dec(p + len);
 		len += 2;
 	}
 
@@ -283,7 +278,7 @@ gzip_read_header(struct archive_read_filter *self, struct archive_entry *entry)
 
 	state = (struct private_data *)self->data;
 
-	/* A mtime of 0 is considered invalid/missing. */
+	/* An mtime of 0 is considered invalid/missing. */
 	if (state->mtime != 0)
 		archive_entry_set_mtime(entry, state->mtime, 0);
 
@@ -411,7 +406,6 @@ consume_trailer(struct archive_read_filter *self)
 {
 	struct private_data *state;
 	const unsigned char *p;
-	ssize_t avail;
 
 	state = (struct private_data *)self->data;
 
@@ -427,8 +421,8 @@ consume_trailer(struct archive_read_filter *self)
 	}
 
 	/* GZip trailer is a fixed 8 byte structure. */
-	p = __archive_read_filter_ahead(self->upstream, 8, &avail);
-	if (p == NULL || avail == 0)
+	p = __archive_read_filter_ahead(self->upstream, 8, NULL);
+	if (p == NULL)
 		return (ARCHIVE_FATAL);
 
 	/* XXX TODO: Verify the length and CRC. */
