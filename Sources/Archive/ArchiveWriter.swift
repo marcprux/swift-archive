@@ -1,10 +1,19 @@
 import CArchive
 import Foundation
 
+/// Compression applied to an individual archive entry.
+public enum ArchiveEntryCompression: Sendable {
+    /// Uses the archive format's default compression.
+    case `default`
+    /// Stores regular ZIP entries without compression.
+    case none
+}
+
 /// Writes entries and data to an archive.
 public final class ArchiveWriter {
     private let archive: OpaquePointer
     private let entry: OpaquePointer
+    private let format: ArchiveFormat
     private let tempPath: String?
     private var closed = false
 
@@ -21,6 +30,7 @@ public final class ArchiveWriter {
         }
         self.archive = a
         self.entry = e
+        self.format = format
         let tmp = NSTemporaryDirectory() + "archive_\(ProcessInfo.processInfo.globallyUniqueString)"
         self.tempPath = tmp
 
@@ -52,6 +62,7 @@ public final class ArchiveWriter {
         }
         self.archive = a
         self.entry = e
+        self.format = format
         self.tempPath = nil
 
         let fr = format.setWriteFormat(a)
@@ -83,6 +94,18 @@ public final class ArchiveWriter {
 
     /// Writes an entry with optional data to the archive.
     public func writeEntry(_ archiveEntry: ArchiveEntry, data: Data? = nil) throws {
+        try writeEntry(archiveEntry, data: data, compression: .default)
+    }
+
+    /// Writes an entry with optional data and compression control to the archive.
+    ///
+    /// The compression setting applies to regular ZIP entries and is ignored by other formats.
+    public func writeEntry(
+        _ archiveEntry: ArchiveEntry,
+        data: Data? = nil,
+        compression: ArchiveEntryCompression
+    ) throws {
+        try setCompression(compression)
         archive_entry_clear(entry)
         archiveEntry.apply(to: entry)
         if let data = data {
@@ -99,6 +122,25 @@ public final class ArchiveWriter {
             if written < 0 {
                 throw ArchiveError(archive: archive)
             }
+        }
+    }
+
+    private func setCompression(_ compression: ArchiveEntryCompression) throws {
+        guard case .zip = format else { return }
+
+        let r: Int32
+        switch compression {
+        case .default:
+            if archive_zlib_version() != nil {
+                r = archive_write_zip_set_compression_deflate(archive)
+            } else {
+                r = archive_write_zip_set_compression_store(archive)
+            }
+        case .none:
+            r = archive_write_zip_set_compression_store(archive)
+        }
+        if r != ARCHIVE_OK && r != ARCHIVE_WARN {
+            throw ArchiveError(archive: archive)
         }
     }
 

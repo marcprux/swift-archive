@@ -614,6 +614,53 @@ struct FormatDetectionTests {
 @Suite("Zip Edge Cases")
 struct ZipEdgeCaseTests {
 
+    @Test func writeEntryMethodReferenceCompatibility() throws {
+        let data = Data("method reference".utf8)
+        let writer = try ArchiveWriter(format: .zip)
+        let write: (ArchiveEntry, Data?) throws -> Void = writer.writeEntry
+        try write(ArchiveEntry(pathname: "reference.txt", size: Int64(data.count)), data)
+        let archiveData = try writer.finish()
+
+        let reader = try ArchiveReader(data: archiveData)
+        try reader.forEachEntry { entry, reader in
+            let readData = try reader.readData()
+            #expect(entry.pathname == "reference.txt")
+            #expect(readData == data)
+        }
+    }
+
+    @Test func zipPerEntryCompression() throws {
+        let storedData = Data(repeating: 0x41, count: 1024)
+        let defaultData = Data(repeating: 0x42, count: 1024)
+        let writer = try ArchiveWriter(format: .zip)
+        try writer.writeEntry(
+            ArchiveEntry(pathname: "stored.bin", size: Int64(storedData.count)),
+            data: storedData,
+            compression: .none
+        )
+        try writer.writeEntry(
+            ArchiveEntry(pathname: "default.bin", size: Int64(defaultData.count)),
+            data: defaultData
+        )
+        let archiveData = try writer.finish()
+
+        let methods = zipCompressionMethods(in: archiveData)
+        #expect(methods.first == 0)
+        #if GzipSupport
+        #expect(methods == [0, 8])
+        #else
+        #expect(methods == [0, 0])
+        #endif
+
+        let reader = try ArchiveReader(data: archiveData)
+        var files: [String: Data] = [:]
+        try reader.forEachEntry { entry, reader in
+            files[entry.pathname] = try reader.readData()
+        }
+        #expect(files["stored.bin"] == storedData)
+        #expect(files["default.bin"] == defaultData)
+    }
+
     @Test func zipEmptyFile() throws {
         let writer = try ArchiveWriter(format: .zip)
         try writer.writeEntry(
@@ -1127,5 +1174,35 @@ struct ZipEdgeCaseTests {
             readNames.append(entry.pathname)
         }
         #expect(readNames == dotFiles)
+    }
+}
+
+private func zipCompressionMethods(in data: Data) -> [UInt16] {
+    let endOfCentralDirectory = Data([0x50, 0x4b, 0x05, 0x06])
+    guard let endRange = data.range(of: endOfCentralDirectory, options: .backwards) else {
+        return []
+    }
+
+    let entryCount = Int(data.uint16(at: endRange.lowerBound + 10))
+    var offset = Int(data.uint32(at: endRange.lowerBound + 16))
+    var methods: [UInt16] = []
+    for _ in 0..<entryCount {
+        guard data.uint32(at: offset) == 0x02014b50 else { return [] }
+        methods.append(data.uint16(at: offset + 10))
+        let nameLength = Int(data.uint16(at: offset + 28))
+        let extraLength = Int(data.uint16(at: offset + 30))
+        let commentLength = Int(data.uint16(at: offset + 32))
+        offset += 46 + nameLength + extraLength + commentLength
+    }
+    return methods
+}
+
+private extension Data {
+    func uint16(at offset: Int) -> UInt16 {
+        UInt16(self[offset]) | UInt16(self[offset + 1]) << 8
+    }
+
+    func uint32(at offset: Int) -> UInt32 {
+        UInt32(uint16(at: offset)) | UInt32(uint16(at: offset + 2)) << 16
     }
 }
