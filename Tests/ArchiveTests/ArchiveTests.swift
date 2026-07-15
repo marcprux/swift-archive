@@ -614,6 +614,21 @@ struct FormatDetectionTests {
 @Suite("Zip Edge Cases")
 struct ZipEdgeCaseTests {
 
+    @Test func writeEntryMethodReferenceCompatibility() throws {
+        let data = Data("method reference".utf8)
+        let writer = try ArchiveWriter(format: .zip)
+        let write: (ArchiveEntry, Data?) throws -> Void = writer.writeEntry
+        try write(ArchiveEntry(pathname: "reference.txt", size: Int64(data.count)), data)
+        let archiveData = try writer.finish()
+
+        let reader = try ArchiveReader(data: archiveData)
+        try reader.forEachEntry { entry, reader in
+            let readData = try reader.readData()
+            #expect(entry.pathname == "reference.txt")
+            #expect(readData == data)
+        }
+    }
+
     @Test func zipPerEntryCompression() throws {
         let storedData = Data(repeating: 0x41, count: 1024)
         let defaultData = Data(repeating: 0x42, count: 1024)

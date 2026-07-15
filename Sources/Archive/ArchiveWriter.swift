@@ -93,12 +93,17 @@ public final class ArchiveWriter {
     }
 
     /// Writes an entry with optional data to the archive.
+    public func writeEntry(_ archiveEntry: ArchiveEntry, data: Data? = nil) throws {
+        try writeEntry(archiveEntry, data: data, compression: .default)
+    }
+
+    /// Writes an entry with optional data and compression control to the archive.
     ///
     /// The compression setting applies to regular ZIP entries and is ignored by other formats.
     public func writeEntry(
         _ archiveEntry: ArchiveEntry,
         data: Data? = nil,
-        compression: ArchiveEntryCompression = .default
+        compression: ArchiveEntryCompression
     ) throws {
         try setCompression(compression)
         archive_entry_clear(entry)
